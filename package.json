@@ -1,0 +1,47 @@
+{
+  "name": "@lloyal-labs/gate",
+  "version": "0.1.0",
+  "description": "The acceptance gate for a repository built with the Lloyal HDK: a change is judged against the engineering principles over its whole delta, and gets in only when the whole with it makes more sense than it does today.",
+  "type": "module",
+  "bin": {
+    "gate": "./dist/cli.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist/",
+    "PRINCIPLES.md",
+    "LICENSE",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lloyal-ai/hdk.git",
+    "directory": "packages/gate"
+  },
+  "homepage": "https://github.com/lloyal-ai/hdk/tree/main/packages/gate#readme",
+  "bugs": {
+    "url": "https://github.com/lloyal-ai/hdk/issues"
+  },
+  "license": "SEE LICENSE IN LICENSE",
+  "engines": {
+    "node": ">=24"
+  },
+  "claudeCode": "2.1.301",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && chmod +x dist/cli.js"
+  },
+  "dependencies": {
+    "semver": "^7.8.1",
+    "zod": "^4.6.5"
+  }
+}

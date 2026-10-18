@@ -46,6 +46,28 @@ export function writeTrailers(root: string, messageFile: string, trailers: Trail
   git(root, ['interpret-trailers', '--in-place', ...trailers.flatMap((t) => ['--trailer', `${t.token}: ${t.value}`]), messageFile]);
 }
 
+/** One commit of a range and the record its message carries, read by git's own trailer parser. */
+export interface Carried {
+  commit: string;
+  subject: string;
+  /** The `Gate` trailer's value, or null when the commit carries none. */
+  record: string | null;
+}
+
+const FIELD = '\x1f';
+
+/** Every commit in `range` with the record it carries, oldest first. */
+export function carried(root: string, range: string): Carried[] {
+  const log = git(root, ['log', '--reverse', `--format=%h${FIELD}%s${FIELD}%(trailers:key=Gate,valueonly,separator=%x20)`, range]);
+  return log
+    .split('\n')
+    .filter((line) => line.length > 0)
+    .map((line) => {
+      const [commit = '', subject = '', record = ''] = line.split(FIELD);
+      return { commit, subject, record: record.trim() === '' ? null : record.trim() };
+    });
+}
+
 /** The message sources git names in `prepare-commit-msg` whose message is not a fresh commit's to annotate: a
  *  merge, a squash, and a commit reused or amended, which already carries its record. */
 const LEFT_ALONE = new Set(['merge', 'squash', 'commit']);

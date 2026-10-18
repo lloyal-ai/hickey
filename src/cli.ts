@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * `gate staged` on every commit, `gate uncommitted` while working, `gate range <base>...<head>` on a pull request;
- * `gate trailer <message-file> [source]` from `prepare-commit-msg` and `gate committed` from `post-commit`.
+ * `gate trailer <message-file> [source]` from `prepare-commit-msg`, `gate committed` from `post-commit`, and
+ * `gate carried <base>...<head>` as the pull-request check: every commit carries the record, no judge runs.
  */
 import { appendFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
@@ -11,7 +12,7 @@ import { isScopeKind, readDelta, SCOPES, type Scope } from './delta.js';
 import { GitFailed, repositoryRoot } from './git.js';
 import { forgetRefusals } from './record.js';
 import { EXIT, exitCode, render, summary } from './report.js';
-import { annotates, trailersFor, writeTrailers } from './trailer.js';
+import { annotates, carried, trailersFor, writeTrailers } from './trailer.js';
 
 function usage(): number {
   process.stderr.write(`${USAGE}\n`);
@@ -44,10 +45,22 @@ function committed(): number {
   return EXIT.getsIn;
 }
 
+/** Whether every commit in a range carries the gate's record; the pull-request check, with no judge. */
+function carries(rest: readonly string[]): number {
+  const [range] = rest;
+  if (!range) return usage();
+  const commits = carried(repositoryRoot(process.cwd()), range);
+  for (const c of commits) process.stdout.write(`${c.commit} ${c.record ?? 'carries no record'}  ${c.subject}\n`);
+  const missing = commits.filter((c) => c.record === null);
+  if (missing.length > 0) process.stderr.write(`gate: ${missing.length} of ${commits.length} commits carry no record; the gate did not see them\n`);
+  return missing.length === 0 ? EXIT.getsIn : EXIT.refused;
+}
+
 /** The commands that are not a scope to judge, each with its usage line; a scope's comes from `SCOPES`. */
 const COMMANDS: Record<string, { usage: string; run: (rest: readonly string[]) => number }> = {
   trailer: { usage: 'gate trailer <message-file> [source]  from prepare-commit-msg: write the record into the message', run: trailer },
   committed: { usage: 'gate committed                        from post-commit: the record has been carried', run: committed },
+  carried: { usage: 'gate carried <base>...<head>          every commit in the range carries the record; the pull-request check', run: carries },
 };
 
 const USAGE = ['usage:', ...[...Object.values(SCOPES), ...Object.values(COMMANDS)].map((entry) => `  ${entry.usage}`)].join('\n');

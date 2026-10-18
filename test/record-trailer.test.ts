@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { readDelta } from '../src/delta.js';
 import { changeId, forgetRefusals, recall, remember } from '../src/record.js';
-import { annotates, trailersFor, writeTrailers } from '../src/trailer.js';
+import { annotates, carried, trailersFor, writeTrailers } from '../src/trailer.js';
 import type { Verdict } from '../src/verdict.js';
 import { gitIn, repoWithStagedChange } from './git.js';
 
@@ -75,6 +75,25 @@ describe('the trailers', () => {
     expect(recall(root).refusals).toHaveLength(1);
     forgetRefusals(root);
     expect(recall(root).refusals).toEqual([]);
+  });
+
+  it('are read back from a range of commits, so a pull request can be checked without a judge', () => {
+    const root = repoWithStagedChange();
+    const git = gitIn(root);
+    const delta = readDelta(root, { kind: 'staged' });
+    remember(root, delta, verdict(true, 'One reading.'));
+    const messageFile = join(root, 'MSG');
+    writeFileSync(messageFile, 'fix(a): two\n');
+    writeTrailers(root, messageFile, trailersFor(root, delta));
+    git('commit', '-q', '-F', messageFile);
+    writeFileSync(join(root, 'a.ts'), 'export const a = 9;\n');
+    git('add', 'a.ts');
+    git('commit', '-q', '-m', 'fix(a): three, never judged');
+    const commits = carried(root, 'HEAD~2...HEAD');
+    expect(commits.map((c) => [c.subject, c.record])).toEqual([
+      ['fix(a): two', 'gets in. One reading.'],
+      ['fix(a): three, never judged', null],
+    ]);
   });
 
   it('leave merge, squash and reused or amended messages alone', () => {

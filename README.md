@@ -43,7 +43,8 @@ post-commit:
 ```sh
 gate staged                      # what is staged, as it would be committed
 gate uncommitted                 # the uncommitted changes against the last commit
-gate range origin/main...HEAD    # a range, as a pull request check
+gate range origin/main...HEAD    # a range, judged whole
+gate carried origin/main...HEAD  # every commit carries the record: the pull-request check, no judge
 ```
 
 Exit 0 when the change gets in, 1 when it is refused, 2 when no verdict could be reached. `git commit --no-verify` is the committer's explicit acceptance of a refusal; nothing else bypasses the gate.
@@ -57,7 +58,7 @@ Gate: gets in. The whole has one reading of the record where it had one before.
 Gate-Refused-Before: 2. A second reader of the record beside the first.
 ```
 
-A commit made with `--no-verify` still runs that hook, so an accepted refusal reads `Gate: refused; accepted by the committer.` with the refusal's reason. The verdicts and refusals live under the repository's git directory, never in the tree, and the journal of refusals starts again once a commit exists, from the `post-commit` hook. A merge, a squash or an amended commit is left alone. In CI, `gate range` also writes the verdict to the job's step summary.
+A commit made with `--no-verify` still runs that hook, so an accepted refusal reads `Gate: refused; accepted by the committer.` with the refusal's reason. The verdicts and refusals live under the repository's git directory, never in the tree, and the journal of refusals starts again once a commit exists, from the `post-commit` hook. A merge, a squash or an amended commit is left alone. The judge runs locally, before every commit. A pull request is checked in seconds with `gate carried`, which reads the `Gate` trailer of every commit in the range through git's own trailer parser and refuses when any commit carries none; a `--no-verify` commit carries its accepted refusal and is visible to the reviewer. `gate range` judges a range whole when someone wants the judge's reading of a branch; it writes the verdict to a job's step summary when run in CI.
 
 ## Principles
 

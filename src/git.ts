@@ -18,6 +18,9 @@ export function git(root: string, args: readonly string[], okay: readonly number
   return ran.stdout;
 }
 
+/** What git printed, as its non-empty lines. */
+export const lines = (output: string): string[] => output.split('\n').filter((line) => line.length > 0);
+
 /** The repository root the gate runs in. */
 export const repositoryRoot = (cwd: string): string => git(cwd, ['rev-parse', '--show-toplevel']).trim();
 

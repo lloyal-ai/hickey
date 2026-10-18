@@ -3,7 +3,7 @@
  * are one table, `SCOPES`: how the command line spells each, what the judge is told it is reading, whether its
  * verdict is the one a commit carries, and how it is read from git.
  */
-import { git } from './git.js';
+import { git, lines } from './git.js';
 
 export type Scope =
   | { kind: 'staged' }
@@ -24,8 +24,6 @@ export const isEmpty = (delta: Delta): boolean => delta.files.length === 0;
 
 /** `git diff --no-index` exits 1 when the two sides differ, which is the answer, not a failure. */
 const DIFFERENCES_FOUND = 1;
-
-const lines = (text: string): string[] => text.split('\n').filter((line) => line.length > 0);
 
 /** One `git diff` and the files it names. */
 function diffed(root: string, scope: Scope, args: readonly string[]): Delta {
@@ -73,7 +71,7 @@ export const SCOPES: { [K in Scope['kind']]: ScopeEntry<K> } = {
     },
   },
   range: {
-    usage: 'gate range <base>...<head> judge the commits between two points',
+    usage: 'gate range <base>...<head> judge the commits between two points, whole',
     sentence: 'the range between two commits',
     remembered: false,
     parse: (rest) => (rest[0] ? { kind: 'range', spec: rest[0] } : null),

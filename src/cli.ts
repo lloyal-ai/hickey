@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * `gate staged` on every commit, `gate uncommitted` while working, `gate range <base>...<head>` on a pull request;
- * `gate trailer <message-file> [source]` from `prepare-commit-msg`, `gate committed` from `post-commit`, and
- * `gate carried <base>...<head>` as the pull-request check: every commit carries the record, no judge runs.
+ * `gate staged` on every commit, `gate uncommitted` while working, `gate range <base>...<head>` to judge a branch
+ * whole; `gate trailer <message-file> [source]` from `prepare-commit-msg`, `gate committed` from `post-commit`; and
+ * `gate carried <base>...<head>`, the pull-request check: every commit carries the record, and no judge runs.
  */
 import { appendFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';

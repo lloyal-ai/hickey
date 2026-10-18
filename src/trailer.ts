@@ -5,13 +5,18 @@
  * cleared only once the commit exists, from `post-commit`.
  */
 import type { Delta } from './delta.js';
-import { git } from './git.js';
+import { git, lines } from './git.js';
 import { changeId, recall, type Recorded } from './record.js';
 
 export interface Trailer {
   token: string;
   value: string;
 }
+
+/** The trailer that carries the gate's verdict; the writer and the reader share the one name. */
+const GATE = 'Gate';
+/** The trailer that counts the refusals an accepted commit left behind. */
+const REFUSED_BEFORE = 'Gate-Refused-Before';
 
 /** What the record says about the change being committed. */
 type Standing = 'unjudged' | 'in' | 'refused';
@@ -24,14 +29,14 @@ function standing(last: Recorded | null, delta: Delta): Standing {
 const refusedBefore = (refusals: Recorded[]): Trailer[] =>
   refusals.length === 0
     ? []
-    : [{ token: 'Gate-Refused-Before', value: `${refusals.length}. ${refusals[refusals.length - 1]!.verdict.reason}` }];
+    : [{ token: REFUSED_BEFORE, value: `${refusals.length}. ${refusals[refusals.length - 1]!.verdict.reason}` }];
 
 const TRAILERS: Record<Standing, (last: Recorded | null, refusals: Recorded[]) => Trailer[]> = {
-  unjudged: (_last, refusals) => [{ token: 'Gate', value: 'not judged as committed' }, ...refusedBefore(refusals)],
-  in: (last, refusals) => [{ token: 'Gate', value: `gets in. ${last!.verdict.reason}` }, ...refusedBefore(refusals)],
+  unjudged: (_last, refusals) => [{ token: GATE, value: 'not judged as committed' }, ...refusedBefore(refusals)],
+  in: (last, refusals) => [{ token: GATE, value: `gets in. ${last!.verdict.reason}` }, ...refusedBefore(refusals)],
   refused: (last, refusals) => {
     const beforeTheAccepted = refusals.slice(0, -1);
-    return [{ token: 'Gate', value: `refused; accepted by the committer. ${last!.verdict.reason}` }, ...refusedBefore(beforeTheAccepted)];
+    return [{ token: GATE, value: `refused; accepted by the committer. ${last!.verdict.reason}` }, ...refusedBefore(beforeTheAccepted)];
   },
 };
 
@@ -58,14 +63,11 @@ const FIELD = '\x1f';
 
 /** Every commit in `range` with the record it carries, oldest first. */
 export function carried(root: string, range: string): Carried[] {
-  const log = git(root, ['log', '--reverse', `--format=%h${FIELD}%s${FIELD}%(trailers:key=Gate,valueonly,separator=%x20)`, range]);
-  return log
-    .split('\n')
-    .filter((line) => line.length > 0)
-    .map((line) => {
-      const [commit = '', subject = '', record = ''] = line.split(FIELD);
-      return { commit, subject, record: record.trim() === '' ? null : record.trim() };
-    });
+  const log = git(root, ['log', '--reverse', `--format=%h${FIELD}%s${FIELD}%(trailers:key=${GATE},valueonly,separator=%x20)`, range]);
+  return lines(log).map((line) => {
+    const [commit = '', subject = '', record = ''] = line.split(FIELD);
+    return { commit, subject, record: record.trim() === '' ? null : record.trim() };
+  });
 }
 
 /** The message sources git names in `prepare-commit-msg` whose message is not a fresh commit's to annotate: a

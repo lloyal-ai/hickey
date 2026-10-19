@@ -234,7 +234,20 @@ hickey staged --full               # the judge's full answer to each question
 
 The judge reads the change in the tree it would be committed to. For `staged` and `amend` that is the index, written out on its own, so an unstaged edit beside the commit is never what the judge sees; for `range` it is the head commit's tree; for `uncommitted` it is the working tree itself.
 
-`pre-commit` asks the commit's question: a verdict the record holds for what is being committed, and that no commit has carried yet, stands in place of judging again, so judge with `hickey staged` while you work and the commit's hook takes that verdict; otherwise the staged change is judged there. An amend carries the verdict of the commit it makes, not of the increment, and that verdict is yours to ask for: run `hickey amend`, then `git commit --amend`. The hooks cannot tell an amend from a commit, since git reports `--amend` and `git commit -C HEAD` to them identically, so they never guess: `pre-commit` honours the verdict for the commit as amended, and the message hook writes it, replacing the record the message carried. An amend without `hickey amend` carries `not judged: amended or reused`. A message-only amend keeps its record, refusals included. `--amend -m` and `--amend -F` reach the hooks as a fresh message, so without `hickey amend` they carry the staged increment's record; amend with the editor or `--no-edit` instead.
+`pre-commit` asks the commit's question: a verdict the record holds for what is being committed, and that no commit has carried yet, stands in place of judging again; otherwise the staged change is judged there. The hooks never guess what a commit is, because git reports `git commit --amend` and `git commit -C HEAD` to them identically. What each form carries:
+
+| you run | `pre-commit` | the commit carries |
+|---|---|---|
+| `git commit` | judges the staged change | its verdict |
+| `hickey staged`, then `git commit` | takes that verdict, no second judgement | its verdict |
+| `hickey amend`, then `git commit --amend` | takes that verdict | the verdict of the commit as amended |
+| `git commit --amend` without `hickey amend` | judges the increment alone | `not judged: amended or reused` |
+| `git commit --amend --no-edit` with nothing staged | nothing to judge | its record as it was, refusals included |
+| `git commit --amend -m` or `-F` | judges the increment alone | the increment's record: git shows the hook a fresh message, so run `hickey amend` first and amend with the editor or `--no-edit` |
+| `git commit -C other` | judges the staged change | `not judged: amended or reused`: git shows the hook a reused message |
+| `git commit --no-verify` | skipped | `refused; accepted by the committer`, or not judged |
+| a merge | does not run | nothing; `carried` leaves merges out |
+| a squash, `git merge --squash` then `git commit` | judges the staged change | nothing: the hook leaves a squash message alone, and `carried` reports the commit as missing a record |
 
 `carried` checks that every commit carries a record. A record is a verdict, a refusal the committer accepted, or an explicit not judged; what it proves is that the gate's outcome was written down, and a reviewer reads which.
 
@@ -285,7 +298,7 @@ Put that in `hickey.config.json` and every commit is judged against your documen
 
 - A judgement is about a minute and reads your repository. It runs on your coding agent's own account, so it costs what a minute of your agent costs, out of the same plan.
 - Every verdict ends with what it took: the time, and the turns the judge spent reading and the tokens it read and wrote, as the judge reports them. No dollar figure: the judge runs on your account, and tokens are what your plan meters.
-- Committing often? Run `hickey uncommitted` while you work and let the commit's run be the confirmation.
+- Committing often? Run `hickey staged` while you work. The commit's hook takes that verdict and does not judge again.
 - Verdicts and the refusal journal live under your repository's git directory, never in the tree. Nothing is sent anywhere except to the agent you already use.
 
 ## FAQ
@@ -324,7 +337,7 @@ Today, yes. A `command` judge that hands the principles and the change to any ag
 
 #### Will it slow me down?
 
-A minute per commit, and a minute less per review. The time, turns and tokens are printed on every verdict, so measure it on your repository.
+A minute per commit, or none when you judged while working, and a minute less per review. The time, turns and tokens are printed on every verdict, so measure it on your repository.
 
 #### Is this affiliated with Rich Hickey?
 

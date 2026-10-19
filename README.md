@@ -4,7 +4,7 @@
 
 <h1 align="center">hickey</h1>
 
-<p align="center"><strong>Make your coding agent write maintainable code.</strong></p>
+<p align="center"><strong><a href="https://www.youtube.com/watch?v=SxdOUGdseq4">Simple Made Easy</a> for coding agents.<br>Turn your commit hook into an architectural quality gate.</strong></p>
 
 <p align="center">
   <a href="#quick-start">Quick start</a> &nbsp;·&nbsp;

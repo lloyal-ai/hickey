@@ -30,18 +30,18 @@ npx lefthook install
 >
 > <p align="right">Rich Hickey, <em>Simplicity Matters</em></p>
 
-hickey is a commit gate. Before a commit exists, a judge reads your whole repository and asks one question: **does the system make more sense with this change in it, or less?**
+hickey is a commit gate. Before a commit exists, a judge reads the change, and whatever of your repository it needs to understand the change's effect on the system, and asks one question: **does the system make more sense with this change in it, or less?**
 
-If less, the commit is refused with a precise instruction. Your agent revises and commits again. When it gets in, the commit carries the verdict and the number of rounds it took.
+If less, the commit is refused with the one decision to make. Your agent makes it and commits again. When it gets in, the commit carries the verdict and the count of refusals on the way.
 
 ## Highlights
 
 - **Judges the whole, not the diff.** The judge reads any file it needs. A change is compared as a system: the codebase as it is against the codebase with the change in it.
 - **Refuses with an instruction.** Every finding names the file, the line, the existing thing it relates to, and how many places a rule now lives in.
 - **Closes the loop around your agent.** A refusal exits non-zero, so the commit does not happen until a change passes. Refuse, revise, judge again, in.
-- **Records everything in git.** The verdict and the refusal count are trailers on the commit, written by `git interpret-trailers`. A pull request is checked in seconds with no judge at all.
-- **Your principles, or ours.** Ships with the simplicity principles of Rich Hickey's talks, written for a judge. Point it at your own document and it judges as your tech lead would.
-- **Runs on your machine.** The judge is your own coding agent, isolated, read-only, with nothing of yours loaded. No service, no key in CI.
+- **Records everything in git.** The verdict and the refusal count are trailers on the commit, written by `git interpret-trailers`. CI checks in seconds, with no judge, that every commit in a pull request carries the gate's outcome.
+- **Your principles, or ours.** Ships with the simplicity principles of Rich Hickey's talks, written for a judge. Point it at your team's own rulings and every commit is judged against them.
+- **Runs on your machine.** The judge is a headless Claude Code session on your own login, isolated, read-only, with nothing of yours loaded. Your authoring agent can be anything that runs `git commit`. No service, no key in CI.
 
 ## Contents
 

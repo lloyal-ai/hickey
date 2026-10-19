@@ -10,17 +10,17 @@
   <a href="#quick-start">Quick start</a> &nbsp;·&nbsp;
   <a href="#the-loop">How it works</a> &nbsp;·&nbsp;
   <a href="./PRINCIPLES.md">Principles</a> &nbsp;·&nbsp;
-  <a href="https://www.npmjs.com/package/hickey">npm</a>
+  <a href="https://www.npmjs.com/package/@lloyal-labs/hickey">npm</a>
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/hickey"><img alt="npm" src="https://img.shields.io/npm/v/hickey?label=npm"></a>
+  <a href="https://www.npmjs.com/package/@lloyal-labs/hickey"><img alt="npm" src="https://img.shields.io/npm/v/@lloyal-labs/hickey?label=npm"></a>
   <a href="./LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>
   <img alt="node" src="https://img.shields.io/badge/node-%E2%89%A524-green">
 </p>
 
 ```sh
-npm install --save-dev hickey lefthook
+npm install --save-dev @lloyal-labs/hickey lefthook
 npx lefthook install
 ```
 
@@ -162,9 +162,11 @@ Duplication is the easiest of the judge's eight questions to show. Most refusals
 ## Quick start
 
 ```sh
-npm install --save-dev hickey lefthook
+npm install --save-dev @lloyal-labs/hickey lefthook
 npx lefthook install
 ```
+
+The package is scoped; the binary it installs is `hickey`, which is what the hooks and every command below run.
 
 The second command matters. npm no longer runs a dependency's install scripts, so lefthook does not install its hooks on its own. hickey warns you if it sees a `lefthook.yml` naming it with no hook installed.
 

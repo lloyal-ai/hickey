@@ -33,15 +33,17 @@ const refused: Verdict = {
   wholeToday: 'One reading.',
   wholeWithChange: 'Two readings.',
   answers: [{ question: 3, answer: 'A sibling exists.', findings: [{ file: 'src/a.ts', line: 4, existing: 'src/b.ts', places: 2, statement: 'A second reader beside the first.' }] }],
+  shape: 'The record has one reader; the second caller composes it.',
   getsIn: false,
   reason: 'The whole has two readings where it had one.',
 };
 
 describe('the report', () => {
-  it('prints the comparison, the findings, and the verdict; the answers with their evidence on request', () => {
+  it('prints the comparison, the shape above the findings, and the verdict; the answers with their evidence on request', () => {
     const text = render(refused);
     expect(text).toContain('The whole today\n  One reading.');
     expect(text).toContain('The whole with this change\n  Two readings.');
+    expect(text).toContain('The shape\n  The record has one reader; the second caller composes it.\n\nFindings');
     expect(text).toContain('src/a.ts:4 (existing: src/b.ts) (places: 2): A second reader beside the first.');
     expect(text).toContain('Findings\n   src/a.ts:4');
     expect(text).not.toContain('3. A sibling exists.');

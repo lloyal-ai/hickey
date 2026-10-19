@@ -91,33 +91,54 @@ The setup: a small app with one entity, `User`, read from a line of CSV by hand 
 $ git commit -m "add an order reader"
 
 The whole today
-  One entity, User, whose reader splits a line on commas by hand. There is no
-  record abstraction and no CSV dependency.
+  The source tree holds one module, src/users.ts, with a User type and a
+  hand-written reader that splits a comma-delimited line and destructures it
+  positionally.
 
 The whole with this change
-  Two files that each read a comma-separated line by hand, with the same
-  split-and-destructure shape, differing only in the column names and one
-  Number() coercion. The rule for how a line is split now lives in two places,
-  and the third entity will be a third copy.
+  Two modules that each split a comma-delimited line and destructure it
+  positionally, differing only in column names and one Number coercion. The
+  splitting rule lives in two places with no owner, and the two files together
+  teach that a new entity is added by copying the previous reader.
+
+The shape
+  The change lacks a decision about who owns reading a record from a delimited
+  line. That ownership belongs to one reader, driven by a column list with
+  per-column coercion, which the users module and the orders module both
+  compose. Once that reader exists, adding Order is a type and a column list,
+  the split rule moves in one place, and the next entity is cheaper to add
+  than this one was.
 
 Findings
-   src/orders.ts:2 (existing: readUser in src/users.ts): readOrder is a
-   parameterised copy of readUser; the right form is one schema-driven row
-   reader that both files compose.
-   src/orders.ts:3 (existing: line splitting rule) (places: 2): A change to how
-   a line is tokenised must be made in src/users.ts:3 and src/orders.ts:3.
+   src/orders.ts:2 (existing: readUser in src/users.ts:2): readOrder is a copy
+   of readUser with renamed columns and one coercion; it should be a
+   composition of a single delimited-record reader.
+   src/orders.ts:3 (existing: src/users.ts:3) (places: 2): line.split(',')
+   appears in both readers; the splitting rule moves in two places where it
+   previously moved in one.
 
-Refused: The change turns one hand-rolled CSV reader into two copies of the
-same shape; replace both with a single column-table-driven record reader that
-users.ts and orders.ts each compose.
+Refused: The whole makes less sense with this change because the rule for
+reading a delimited line now lives in two hand-written readers with no owner;
+add the Order entity as a composition of one shared record reader that owns
+the split and per-column coercion.
+Judged in 39 s: 7 turns, 42k tokens read, 3k written.
 ```
 
-Your agent reads that, writes the one reader, commits again.
+Your agent reads the shape, not the findings one by one. It writes the one reader, commits again.
 
 ```
-Gets in: Reading a comma-separated record now has one owner in record.ts and
-each entity is a column table composing it, so the next change to the format
-touches one line instead of one file per entity.
+The shape
+  The change rests on the decision that an entity is its columns and that
+  reading a delimited line is one operation owned by record.ts. Once made,
+  each entity module shrinks to an interface plus a column table, the split
+  and coercions have a single owner, and the next entity or the next change
+  to the format each touch one file.
+
+Gets in: The whole makes more sense with this change: the rule for reading a
+line moves from a function that would have been copied per entity to one
+reader in record.ts that both entities compose, so the next entity and the
+next format change are each one-file work.
+Judged in 50 s: 7 turns, 44k tokens read, 3k written.
 ```
 
 The commit carries both verdicts.
@@ -126,11 +147,11 @@ The commit carries both verdicts.
 $ git log -1 --format=%B
 add an order reader
 
-Gate: gets in. Reading a comma-separated record now has one owner in record.ts ...
-Gate-Refused-Before: 1 refusal on the way to this shape. Last: The change turns one hand-rolled CSV reader into two copies ...
+Gate: gets in. The whole makes more sense with this change: the rule for reading a line moves ...
+Gate-Refused-Before: 1 refusal on the way to this shape. Last: The whole makes less sense with this change because the rule for reading a delimited line now lives in two hand-written readers with no owner; ...
 ```
 
-That transcript is real, trimmed for length. Two rounds: 47 seconds to the refusal, 59 to the commit that got in. Harder changes take more rounds, and the count rides on the commit.
+That transcript is real, trimmed for length. Two rounds: 39 seconds to the refusal, 50 to the commit that got in. Harder changes take more rounds, and the count rides on the commit.
 
 Duplication is the easiest of the judge's eight questions to show. Most refusals are about where a concern lives, not copies.
 
@@ -223,6 +244,8 @@ Eight questions, in order, over the whole change.
 7. **Is the structure declarative?** Data and tables, or control flow a reader must execute in their head?
 8. **Did it meet the letter of a principle while defeating its intent?** A copy parameterised instead of composed. A rename in place of a redesign. A helper that hides a braid.
 
+Then the shape: the findings read together, as the symptoms of one missing abstraction, named with the component that owns it and what falls out of it. A refusal names the decision to make, not the places to patch.
+
 Then the verdict, as a comparison of the codebase with and without the change.
 
 The full document is [`PRINCIPLES.md`](./PRINCIPLES.md): the values with their reasons, the questions, judgments to calibrate against, and what does not count as evidence.
@@ -286,7 +309,7 @@ hickey moves the judgement to the whole: not the best version of this diff, but 
 
 #### Can my agent read the verdict?
 
-That is the point. The verdict is structured, and the findings name the file, the line, the existing thing and the count. Let the agent run `git commit` and read the refusal itself.
+That is the point. The verdict is structured: the shape names the one decision to make, and the findings under it name the file, the line, the existing thing and the count. Let the agent run `git commit` and read the refusal itself. An agent that acts on the shape makes one decision; an agent that acts on the findings patches each place.
 
 #### Does it need Claude Code?
 

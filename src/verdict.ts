@@ -22,8 +22,9 @@ export const Verdict = z.object({
   wholeToday: z.string().describe('What the whole looks like as it is, in a few sentences.'),
   wholeWithChange: z.string().describe('What the whole looks like with this change in it, in a few sentences.'),
   answers: z.array(Answer),
+  shape: z.string().describe('The one decision the findings follow from: what it is, which component owns it, and what falls out of it once made.'),
   getsIn: z.boolean().describe('True only when the whole with the change makes more sense than it does today.'),
-  reason: z.string().describe('The verdict as the comparison, in one sentence a reader could act on.'),
+  reason: z.string().describe('The verdict as the comparison, in one sentence that names the shape and a reader could act on.'),
 });
 
 export type Finding = z.output<typeof Finding>;

@@ -1,7 +1,8 @@
 /**
  * What the gate says, and what it exits with. The verdict is a comparison, printed as one; the exit code is the
- * commit's fate. The short form is what a person at a prompt reads: the two wholes, every finding, the verdict.
- * The full form adds the judge's answer to each question, for the reader who wants the evidence.
+ * commit's fate. The short form is what a person at a prompt reads: the two wholes, the shape (the one decision
+ * the findings follow from, printed above them so a reader acts on it and not on each place), every finding,
+ * the verdict. The full form adds the judge's answer to each question, for the reader who wants the evidence.
  */
 import type { Spent } from './judge.js';
 import type { Finding, Verdict } from './verdict.js';
@@ -42,6 +43,9 @@ export function render(verdict: Verdict, rendering: Rendering = { full: false })
     '',
     'The whole with this change',
     `  ${verdict.wholeWithChange}`,
+    '',
+    'The shape',
+    `  ${verdict.shape}`,
     '',
     ...middle,
     ...(middle.length === 0 ? [] : ['']),

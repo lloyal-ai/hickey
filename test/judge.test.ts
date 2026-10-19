@@ -73,7 +73,7 @@ describe('the judge', () => {
     expect(args).toEqual(expect.arrayContaining(['--strict-mcp-config', '--disable-slash-commands', '--no-session-persistence']));
     expect(args).not.toContain('--bare');
     const schema = JSON.parse(args[args.indexOf('--json-schema') + 1]!) as { required?: string[] };
-    expect(schema.required).toEqual(expect.arrayContaining(['wholeToday', 'wholeWithChange', 'answers', 'getsIn', 'reason']));
+    expect(schema.required).toEqual(expect.arrayContaining(['wholeToday', 'wholeWithChange', 'answers', 'shape', 'getsIn', 'reason']));
   });
 
   it('hands the judge the kind of repository, the files and the diff, and the real arguments', () => {

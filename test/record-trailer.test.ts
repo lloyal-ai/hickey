@@ -8,7 +8,7 @@ import type { Verdict } from '../src/verdict.js';
 import { gitIn, repoWithStagedChange } from './git.js';
 
 const verdict = (getsIn: boolean, reason: string): Verdict => ({
-  wholeToday: 'today', wholeWithChange: 'after', answers: [], getsIn, reason,
+  wholeToday: 'today', wholeWithChange: 'after', answers: [], shape: 'one reader', getsIn, reason,
 });
 
 describe('the record', () => {

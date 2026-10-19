@@ -20,6 +20,7 @@ const verdict = {
   wholeToday: 'One reading of the record.',
   wholeWithChange: 'Still one reading of the record, now shared.',
   answers: [{ question: 1, answer: 'It shares the record reading.', findings: [] }],
+  shape: 'One reader of the record, which both callers compose.',
   getsIn: true,
   reason: 'The whole has one reading where it had one before.',
 };
@@ -27,7 +28,7 @@ const verdict = {
 const answers = {
   verdict: () => ({ type: 'result', subtype: 'success', is_error: false, result: JSON.stringify(verdict), structured_output: verdict, num_turns: 3,
     usage: { input_tokens: 40, cache_creation_input_tokens: 500, cache_read_input_tokens: 1200, output_tokens: 60 } }),
-  refused: () => ({ type: 'result', subtype: 'success', is_error: false, structured_output: { ...verdict, getsIn: false, reason: 'A second reading of the record.',
+  refused: () => ({ type: 'result', subtype: 'success', is_error: false, structured_output: { ...verdict, getsIn: false, shape: 'The record has one reader; the second caller composes it.', reason: 'A second reading of the record.',
     answers: [{ question: 3, answer: 'A sibling exists.', findings: [{ file: 'src/a.ts', line: 4, existing: 'src/b.ts readRecord', places: 2, statement: 'A second reader of the record beside the first.' }] }] } }),
   'no-structured': () => ({ type: 'result', subtype: 'success', is_error: false, result: 'I could not decide.' }),
   error: () => ({ type: 'result', subtype: 'error_max_turns', is_error: true, result: 'Reached max turns' }),

@@ -1,0 +1,52 @@
+# A release is a tag. Push `vX.Y.Z` and this publishes that version to npm with provenance and
+# opens the GitHub release with generated notes. The tag must name the version the manifest
+# declares, so a release can never ship a version the tree does not say it is.
+#
+# Publishing authenticates through npm's trusted publishing (OpenID Connect from this workflow),
+# configured once on the package's settings page at npmjs.com: no token is stored here.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The whole history: the carried check reads every commit since the previous tag.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: The tag names the manifest's version
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          test "${GITHUB_REF_NAME}" = "v${version}" || {
+            echo "tag ${GITHUB_REF_NAME} does not match package.json version ${version}" >&2
+            exit 1
+          }
+
+      - run: npm ci
+
+      - name: Every commit since the previous release carries the gate's record
+        run: |
+          previous="$(git describe --tags --abbrev=0 --match 'v*' "${GITHUB_REF_NAME}^" 2>/dev/null || true)"
+          if [ -n "$previous" ]; then npx tsx src/cli.ts carried "${previous}...${GITHUB_REF_NAME}"; fi
+
+      # prepublishOnly typechecks, builds and tests: the one pre-publish rule, here and on a manual publish alike.
+      - run: npm publish --provenance
+
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${GITHUB_REF_NAME}" --generate-notes --verify-tag

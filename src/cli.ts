@@ -2,8 +2,8 @@
 /**
  * `hickey staged` on every commit, `hickey uncommitted` while working, `hickey range <base>...<head>` to judge a
  * branch whole; `hickey trailer <message-file> [source]` from `prepare-commit-msg`, `hickey committed` from
- * `post-commit`; and `hickey carried <base>...<head>`, the pull-request check: every commit carries the record,
- * and no judge runs. `--full` prints the judge's answer to each question above its findings.
+ * `post-commit`; and `hickey carried <base>...<head>`, the check that every commit in a range carries the record,
+ * for a pull request or a release, with no judge. `--full` prints the judge's answer to each question above its findings.
  */
 import { appendFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
@@ -47,7 +47,7 @@ function committed(): number {
   return EXIT.getsIn;
 }
 
-/** Whether every commit in a range carries the gate's record; the pull-request check, with no judge. */
+/** Whether every commit in a range carries the gate's record, for a pull request or a release, with no judge. */
 function carries(rest: readonly string[]): number {
   const [range] = rest;
   if (!range) return usage();
@@ -62,7 +62,7 @@ function carries(rest: readonly string[]): number {
 const COMMANDS: Record<string, { usage: string; run: (rest: readonly string[]) => number }> = {
   trailer: { usage: 'hickey trailer <message-file> [source]  from prepare-commit-msg: write the record into the message', run: trailer },
   committed: { usage: 'hickey committed                        from post-commit: the record has been carried', run: committed },
-  carried: { usage: 'hickey carried <base>...<head>          every commit in the range carries the record; the pull-request check', run: carries },
+  carried: { usage: 'hickey carried <base>...<head>          every commit in a range carries the record: a pull request, a release', run: carries },
 };
 
 const USAGE = [

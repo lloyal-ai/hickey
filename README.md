@@ -183,7 +183,7 @@ The judge needs [Claude Code](https://docs.claude.com/en/docs/claude-code) insta
 hickey staged                      # what is staged, as it would be committed
 hickey uncommitted                 # everything uncommitted, against the last commit
 hickey range origin/main...HEAD    # a branch, judged whole
-hickey carried origin/main...HEAD  # every commit carries a verdict: the pull-request check
+hickey carried origin/main...HEAD  # every commit carries a verdict: for a pull request or a release
 hickey staged --full               # the judge's full answer to each question
 ```
 

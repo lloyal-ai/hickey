@@ -49,10 +49,11 @@ export function render(verdict: Verdict, rendering: Rendering = { full: false })
   ].join('\n');
 }
 
-/** What the judgement cost, in one line. */
+/** What the judgement took, in one line: the wall time hickey measured, and the dollars the judge reported.
+ *  The dollars are the judge's own accounting at API rates; on a subscription plan nothing is billed per run. */
 export function spent(cost: Spent): string {
   const seconds = Math.round(cost.durationMs / 1000);
-  return cost.usd === null ? `Judged in ${seconds} s.` : `Judged in ${seconds} s for $${cost.usd.toFixed(2)}.`;
+  return cost.usd === null ? `Judged in ${seconds} s.` : `Judged in ${seconds} s; $${cost.usd.toFixed(2)} at API rates.`;
 }
 
 /** The verdict as a job's step summary, with the evidence. */

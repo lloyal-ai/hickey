@@ -58,6 +58,6 @@ describe('the report', () => {
 
   it("says what a judgement cost, with the dollars when the judge reported them", () => {
     expect(spent({ durationMs: 47_300, usd: null })).toBe("Judged in 47 s.");
-    expect(spent({ durationMs: 58_600, usd: 0.3149 })).toBe("Judged in 59 s for $0.31.");
+    expect(spent({ durationMs: 58_600, usd: 0.3149 })).toBe("Judged in 59 s; $0.31 at API rates.");
   });
 });

@@ -137,6 +137,19 @@ Duplication is the easiest of the judge's eight questions to show. Most refusals
 
 A commit gate is a loop, and the hook is what makes it one.
 
+```mermaid
+flowchart TD
+    A[agent stages a change] --> B[git commit]
+    B --> C["pre-commit: hickey staged<br/>the judge reads the principles, the diff,<br/>and any file in the repository it needs"]
+    C --> D{verdict}
+    D -- refused, exit 1 --> E["findings: file, line, the existing thing,<br/>how many places the rule now lives in"]
+    E --> F[agent revises]
+    F --> B
+    D -- gets in, exit 0 --> G["prepare-commit-msg: hickey trailer<br/>Gate: gets in ...<br/>Gate-Refused-Before: N"]
+    G --> H[the commit exists]
+    H --> I["pull request or release:<br/>hickey carried base...head<br/>reads the trailers, seconds, no judge"]
+```
+
 - The agent's goal is a commit.
 - A refusal exits non-zero. The commit does not happen. The goal stands unmet.
 - hickey is the loop's condition, the agent is its body, and "gets in" is the exit.
@@ -301,6 +314,8 @@ npm test             # runs against a stand-in judge; Claude Code is never run b
 ```
 
 Every commit to this repository goes through hickey. Read the trailers in `git log` to see what the judge said about each one.
+
+A release is a pushed tag `vX.Y.Z` that matches the version in `package.json`. The workflow checks the match, checks that every commit since the previous release carries the gate's record, publishes to npm with provenance, and opens the GitHub release.
 
 ## License
 

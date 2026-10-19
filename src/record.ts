@@ -25,11 +25,24 @@ export type Recorded = z.output<typeof Recorded>;
 const LAST = 'verdict.json';
 const REFUSALS = 'refusals.jsonl';
 
-/** The change as the record keys it. */
-export const changeId = (delta: Delta): string => createHash('sha256').update(delta.diff).digest('hex');
+/** The change as the record keys it: the diff, the tree it was judged in, and the principles it was judged by.
+ *  The same patch belongs in one surrounding system and not another, and a verdict is only ever about the inputs
+ *  the judge had, so a verdict keyed by the diff alone would be reused where it does not apply. */
+export function changeId(delta: Delta, principles: string): string {
+  return createHash('sha256').update(delta.diff).update('\0').update(delta.tree ?? '').update('\0').update(principles).digest('hex');
+}
 
-/** Whether a recorded verdict is about `delta`. */
-export const covers = (recorded: Recorded | null, delta: Delta): recorded is Recorded => recorded !== null && recorded.change === changeId(delta);
+/** Whether a recorded verdict is about `delta`, judged by `principles`. */
+export const covers = (recorded: Recorded | null, delta: Delta, principles: string): recorded is Recorded =>
+  recorded !== null && recorded.change === changeId(delta, principles);
+
+/** What the record holds for the commit about to be made: which of the deltas a commit carries it is (the record
+ *  covers at most one, since their diffs differ), the verdict, and whether a commit already carries it. */
+export interface CommitRecord {
+  delta: Delta;
+  verdict: Verdict;
+  carried: boolean;
+}
 
 /** The gate's own directory inside git's. */
 function recordDir(root: string): string {
@@ -38,8 +51,8 @@ function recordDir(root: string): string {
   return dir;
 }
 
-export function remember(root: string, delta: Delta, verdict: Verdict): Recorded {
-  const recorded: Recorded = { change: changeId(delta), at: new Date().toISOString(), verdict, carried: false };
+export function remember(root: string, delta: Delta, verdict: Verdict, principles: string): Recorded {
+  const recorded: Recorded = { change: changeId(delta, principles), at: new Date().toISOString(), verdict, carried: false };
   const dir = recordDir(root);
   writeFileSync(join(dir, LAST), JSON.stringify(recorded));
   if (!verdict.getsIn) appendFileSync(join(dir, REFUSALS), `${JSON.stringify(recorded)}\n`);

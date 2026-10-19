@@ -4,9 +4,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CONFIG_FILE } from '../src/config.js';
-import { commitRecord, committing, gate } from '../src/index.js';
+import { committing, gate, recordCarried, recordForMessage } from '../src/index.js';
 import { carriedByCommit, recall } from '../src/record.js';
-import { messageRecord, writeTrailers } from '../src/trailer.js';
+import { writeTrailers } from '../src/trailer.js';
 import { gitIn, repo, repoWithStagedChange } from './git.js';
 
 const fakeClaude = join(fileURLToPath(new URL('.', import.meta.url)), 'fake-claude.mjs');
@@ -21,7 +21,7 @@ function judgeSees(run: () => unknown): { cwd: string; read: string | null } {
 }
 
 /** The message hook's record for the commit about to be made. */
-const message = (root: string, source: string | undefined) => messageRecord(commitRecord(root), recall(root).refusals, source);
+const message = (root: string, source: string | undefined) => recordForMessage(root, source);
 
 /** A repository whose last commit was judged, carries its record, and has told the record so: the hook path of
  *  a fresh commit, from the staged change `a = 2`. */
@@ -34,7 +34,7 @@ function judgedCommit(): string {
   if (record.kind !== 'written') throw new Error('expected a written record');
   writeTrailers(root, messageFile, record.record);
   gitIn(root)('commit', '-q', '-F', messageFile);
-  carriedByCommit(root);
+  recordCarried(root);
   return root;
 }
 
@@ -87,10 +87,61 @@ describe("the commit's question", () => {
     expect(record.record.gate).toBe('refused; accepted by the committer. A second reading of the record.');
   });
 
-  it('leaves a merge or squash message alone', () => {
+  it('is judged again when the same patch is staged in a different tree', () => {
+    const root = repo();
+    const git = gitIn(root);
+    git('checkout', '-q', '-b', 'other');
+    writeFileSync(join(root, 'lifecycle.ts'), 'export const owner = "pool";\n');
+    git('add', 'lifecycle.ts');
+    git('commit', '-q', '-m', 'lifecycle');
+    git('checkout', '-q', 'main');
+    writeFileSync(join(root, 'a.ts'), 'export const a = 2;\n');
+    git('add', 'a.ts');
+    expect(committing(root, fakeClaude).kind).toBe('judged');
+    expect(committing(root, fakeClaude).kind).toBe('recorded');
+    git('checkout', '-q', 'other');
+    expect(committing(root, fakeClaude).kind).toBe('judged');
+  });
+
+  it('is judged again when the principles changed since the verdict', () => {
+    const root = repoWithStagedChange();
+    expect(committing(root, fakeClaude).kind).toBe('judged');
+    writeFileSync(join(root, 'PRINCIPLES.md'), '# Ours\n');
+    writeFileSync(join(root, CONFIG_FILE), JSON.stringify({ principles: 'PRINCIPLES.md' }));
+    expect(committing(root, fakeClaude).kind).toBe('judged');
+  });
+
+  it('leaves a merge message alone and annotates a squash like any commit', () => {
     const root = judgedCommit();
     expect(message(root, 'merge')).toEqual({ kind: 'leave' });
-    expect(message(root, 'squash')).toEqual({ kind: 'leave' });
+    writeFileSync(join(root, 'b.ts'), 'export const b = 1;\n');
+    gitIn(root)('add', 'b.ts');
+    committing(root, fakeClaude);
+    expect(message(root, 'squash')).toEqual({ kind: 'written', record: IN });
+  });
+
+  it('marks the verdict carried only when the commit made carries the record', () => {
+    const root = repoWithStagedChange();
+    committing(root, fakeClaude);
+    gitIn(root)('commit', '-q', '-m', 'two, unannotated');
+    recordCarried(root);
+    expect(recall(root).last?.carried).toBe(false);
+  });
+
+  it('writes a still-valid record into a replacement message on a message-only --amend -m, refusals carried over', () => {
+    const root = repoWithStagedChange();
+    process.env.FAKE_CLAUDE_MODE = 'refused';
+    try { gate(root, { kind: 'staged' }, fakeClaude); } finally { delete process.env.FAKE_CLAUDE_MODE; }
+    gate(root, { kind: 'staged' }, fakeClaude);
+    const messageFile = join(root, 'MSG');
+    writeFileSync(messageFile, 'two\n');
+    const first = message(root, undefined);
+    if (first.kind !== 'written') throw new Error('expected a written record');
+    writeTrailers(root, messageFile, first.record);
+    gitIn(root)('commit', '-q', '-F', messageFile);
+    recordCarried(root);
+    expect(message(root, 'commit')).toEqual({ kind: 'stands' });
+    expect(message(root, 'message')).toEqual({ kind: 'written', record: { gate: IN.gate, refusedBefore: '1 refusal on the way to this shape. Last: A second reading of the record.' } });
   });
 });
 

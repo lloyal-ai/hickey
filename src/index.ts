@@ -3,14 +3,16 @@
  * its whole delta against the principles, and gets in only when the whole with it makes more sense than it does
  * today. `gate` judges a scope asked for by name. `committing` is the commit's own question, from `pre-commit`:
  * the verdict the record already holds for what is being committed, or the staged change judged. `commitRecord`
- * is the one reading of the record both that question and the message hook compose, so a commit is passed on and
- * annotated from the same answer; the message hook adds only what git tells it that `pre-commit` is not told.
+ * is the one reading of the record both that question and the message hook (`recordForMessage`) compose, so a
+ * commit is passed on and annotated from the same answer; the message hook adds only what git tells it that
+ * `pre-commit` is not told. `recordCarried`, from `post-commit`, tells the record when a commit carries it.
  */
-import { principlesPath, readConfig, type Config } from './config.js';
+import { principlesPath, readConfig, readPrinciples, type Config } from './config.js';
 import { isEmpty, readDelta, SCOPES, type Delta, type Scope } from './delta.js';
 import { exportTree, removeTree, repositoryRoot } from './git.js';
 import { CLAUDE, judge, judgeAvailability, JudgeFailed, type Judged, type Spent } from './judge.js';
-import { covers, recall, remember } from './record.js';
+import { carriedByCommit, covers, recall, remember, type CommitRecord } from './record.js';
+import { headRecord, messageRecord, type MessageRecord } from './trailer.js';
 import type { Verdict } from './verdict.js';
 
 export type { Verdict, Finding, Answer } from './verdict.js';
@@ -34,22 +36,30 @@ export function gate(cwd: string, scope: Scope, claude = CLAUDE): Outcome {
   return judgeDelta(root, readDelta(root, scope), claude);
 }
 
-/** What the record holds for the commit about to be made: which of the deltas a commit carries it is (the record
- *  covers at most one, since their diffs differ), the verdict, and whether a commit already carries it. */
-export interface CommitRecord {
-  delta: Delta;
-  verdict: Verdict;
-  carried: boolean;
-}
-
 /** The record's reading of the commit about to be made, or null when it covers none of the deltas a commit carries. */
 export function commitRecord(cwd: string): CommitRecord | null {
   const root = repositoryRoot(cwd);
   const { last } = recall(root);
   if (last === null) return null;
+  const principles = readPrinciples(root, readConfig(root));
   const candidates = Object.values(SCOPES).filter((entry) => entry.remembered).flatMap((entry) => entry.parse([]) ?? []);
-  const delta = candidates.map((scope) => readDelta(root, scope)).find((candidate) => covers(last, candidate));
+  const delta = candidates.map((scope) => readDelta(root, scope)).find((candidate) => covers(last, candidate, principles));
   return delta === undefined ? null : { delta, verdict: last.verdict, carried: last.carried };
+}
+
+/** The message hook's question, from `prepare-commit-msg`: what the message of the commit about to be made should
+ *  carry, from the record's reading of that commit, the refusals since the last commit, what git says of the
+ *  message, and the record HEAD carries. */
+export function recordForMessage(cwd: string, source: string | undefined): MessageRecord {
+  const root = repositoryRoot(cwd);
+  return messageRecord(commitRecord(root), recall(root).refusals, source, headRecord(root));
+}
+
+/** From `post-commit`: the commit exists, and when it carries the record, the record's verdict is carried and the
+ *  journal starts again. A commit that carries nothing, a merge, leaves the record waiting. */
+export function recordCarried(cwd: string): void {
+  const root = repositoryRoot(cwd);
+  if (headRecord(root).gate !== null) carriedByCommit(root);
 }
 
 /** The commit's question, from `pre-commit`: what is being committed is passed on the verdict the record already
@@ -72,7 +82,7 @@ function judgeDelta(root: string, delta: Delta, claude: string): Outcome {
     throw new JudgeFailed(`${availability.reason}, and this repository requires the judge`);
   }
   const { verdict, spent } = judgeInTree(root, delta, config, claude);
-  if (SCOPES[delta.scope.kind].remembered) remember(root, delta, verdict);
+  if (SCOPES[delta.scope.kind].remembered) remember(root, delta, verdict, readPrinciples(root, config));
   return { kind: 'judged', delta, verdict, spent };
 }
 

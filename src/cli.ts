@@ -8,14 +8,13 @@
  */
 import { appendFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
-import { commitRecord, committing, gate, type Outcome } from './index.js';
+import { committing, gate, recordCarried, recordForMessage, type Outcome } from './index.js';
 import { JudgeFailed } from './judge.js';
 import { isScopeKind, SCOPES, type Scope } from './delta.js';
 import { GitFailed, repositoryRoot } from './git.js';
 import { hooksWarning } from './hooks.js';
-import { carriedByCommit, recall } from './record.js';
 import { EXIT, exitCode, recorded, render, spent, summary, type Rendering } from './report.js';
-import { carried, messageRecord, writeTrailers } from './trailer.js';
+import { carried, writeTrailers } from './trailer.js';
 
 function usage(): number {
   process.stderr.write(`${USAGE}\n`);
@@ -46,13 +45,13 @@ function trailer(rest: readonly string[]): number {
   const [messageFile, source] = rest;
   if (!messageFile) return usage();
   const root = repositoryRoot(process.cwd());
-  const record = messageRecord(commitRecord(root), recall(root).refusals, source);
+  const record = recordForMessage(root, source);
   if (record.kind === 'written') writeTrailers(root, messageFile, record.record);
   return EXIT.getsIn;
 }
 
 function committed(): number {
-  carriedByCommit(repositoryRoot(process.cwd()));
+  recordCarried(process.cwd());
   return EXIT.getsIn;
 }
 

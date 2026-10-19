@@ -52,3 +52,6 @@ export function readConfig(root: string): Config {
   }
   return Config.parse({ ...DEFAULT_CONFIG, ...Config.partial().parse(JSON.parse(text)) });
 }
+
+/** The principles document the judge reads, as text: what a verdict was judged by. */
+export const readPrinciples = (root: string, config: Config): string => readFileSync(principlesPath(root, config), 'utf8');

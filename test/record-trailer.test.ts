@@ -3,8 +3,9 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { readDelta } from '../src/delta.js';
 import { commitRecord } from '../src/index.js';
+import { DEFAULT_CONFIG, readPrinciples } from '../src/config.js';
 import { carriedByCommit, changeId, recall, remember, type Recorded } from '../src/record.js';
-import { carried, gateRecord, writeTrailers } from '../src/trailer.js';
+import { carried, gateRecord, headRecord, writeTrailers } from '../src/trailer.js';
 import type { Verdict } from '../src/verdict.js';
 import { gitIn, repoWithStagedChange } from './git.js';
 
@@ -12,16 +13,19 @@ const verdict = (getsIn: boolean, reason: string): Verdict => ({
   wholeToday: 'today', wholeWithChange: 'after', answers: [], shape: 'one reader', getsIn, reason,
 });
 
+/** The principles the judge read, as the record keys them. */
+const principles = (root: string): string => readPrinciples(root, DEFAULT_CONFIG);
+
 describe('the record', () => {
   it('remembers the last verdict keyed by the change, and journals refusals', () => {
     const root = repoWithStagedChange();
     const delta = readDelta(root, { kind: 'staged' });
     expect(recall(root)).toEqual({ last: null, refusals: [] });
-    remember(root, delta, verdict(false, 'A second reading.'));
-    remember(root, delta, verdict(false, 'Still a second reading.'));
-    remember(root, delta, verdict(true, 'One reading.'));
+    remember(root, delta, verdict(false, 'A second reading.'), principles(root));
+    remember(root, delta, verdict(false, 'Still a second reading.'), principles(root));
+    remember(root, delta, verdict(true, 'One reading.'), principles(root));
     const { last, refusals } = recall(root);
-    expect(last?.change).toBe(changeId(delta));
+    expect(last?.change).toBe(changeId(delta, principles(root)));
     expect(last?.verdict.getsIn).toBe(true);
     expect(refusals.map((r) => r.verdict.reason)).toEqual(['A second reading.', 'Still a second reading.']);
     expect(last?.carried).toBe(false);
@@ -38,7 +42,7 @@ describe('what the record holds for the commit about to be made', () => {
 
   it('is the staged change with its verdict, uncarried, once judged', () => {
     const root = repoWithStagedChange();
-    remember(root, readDelta(root, { kind: 'staged' }), verdict(true, 'One reading.'));
+    remember(root, readDelta(root, { kind: 'staged' }), verdict(true, 'One reading.'), principles(root));
     expect(commitRecord(root)).toMatchObject({ delta: { scope: { kind: 'staged' } }, verdict: { reason: 'One reading.' }, carried: false });
   });
 
@@ -47,16 +51,25 @@ describe('what the record holds for the commit about to be made', () => {
     gitIn(root)('commit', '-q', '-m', 'two');
     writeFileSync(join(root, 'b.ts'), 'export const b = 1;\n');
     gitIn(root)('add', 'b.ts');
-    remember(root, readDelta(root, { kind: 'amend' }), verdict(true, 'Whole.'));
+    remember(root, readDelta(root, { kind: 'amend' }), verdict(true, 'Whole.'), principles(root));
     expect(commitRecord(root)).toMatchObject({ delta: { scope: { kind: 'amend' }, files: ['a.ts', 'b.ts'] }, verdict: { reason: 'Whole.' }, carried: false });
     gitIn(root)('commit', '-q', '--amend', '--no-edit');
     carriedByCommit(root);
     expect(commitRecord(root)).toMatchObject({ delta: { scope: { kind: 'amend' } }, verdict: { reason: 'Whole.' }, carried: true });
   });
 
+  it('keys a verdict by the diff, the tree it was judged in, and the principles it was judged by', () => {
+    const root = repoWithStagedChange();
+    const delta = readDelta(root, { kind: 'staged' });
+    const same = changeId(delta, principles(root));
+    expect(changeId({ ...delta, tree: 'another tree' }, principles(root))).not.toBe(same);
+    expect(changeId(delta, `${principles(root)}\nOne more rule.`)).not.toBe(same);
+    expect(changeId({ ...delta }, principles(root))).toBe(same);
+  });
+
   it('is nothing again when the staged change differs from the judged one', () => {
     const root = repoWithStagedChange();
-    remember(root, readDelta(root, { kind: 'staged' }), verdict(true, 'One reading.'));
+    remember(root, readDelta(root, { kind: 'staged' }), verdict(true, 'One reading.'), principles(root));
     writeFileSync(join(root, 'a.ts'), 'export const a = 3;\n');
     gitIn(root)('add', 'a.ts');
     expect(commitRecord(root)).toBeNull();
@@ -87,8 +100,8 @@ describe('the record a commit carries', () => {
   it('is written into the message by git as one unit, and the journal waits for the commit to exist', () => {
     const root = repoWithStagedChange();
     const delta = readDelta(root, { kind: 'staged' });
-    remember(root, delta, verdict(false, 'A second reading.'));
-    remember(root, delta, verdict(true, 'One reading.'));
+    remember(root, delta, verdict(false, 'A second reading.'), principles(root));
+    remember(root, delta, verdict(true, 'One reading.'), principles(root));
     const messageFile = join(root, 'COMMIT_EDITMSG');
     writeFileSync(messageFile, 'fix(a): two\n\nThe body.\n');
     writeTrailers(root, messageFile, gateRecord(verdict(true, 'One reading.'), recall(root).refusals));
@@ -97,6 +110,28 @@ describe('the record a commit carries', () => {
     expect(recall(root).refusals).toHaveLength(1);
     carriedByCommit(root);
     expect(recall(root).refusals).toEqual([]);
+  });
+
+  it('normalises a message in the earlier format, so exactly one record remains', () => {
+    const root = repoWithStagedChange();
+    const messageFile = join(root, 'MSG');
+    writeFileSync(messageFile, 'two\n\nGate: gets in. Old.\nGate-Refused-Before: 2 refusals on the way to this shape. Last: Older.\n');
+    writeTrailers(root, messageFile, { gate: 'gets in. New.', refusedBefore: '1 refusal on the way to this shape. Last: Newer.' });
+    expect(readFileSync(messageFile, 'utf8')).toBe('two\n\nGate: gets in. New.\nRefused-Before: 1 refusal on the way to this shape. Last: Newer.\n');
+    writeFileSync(messageFile, 'two\n\nGate: gets in. First.\nGate: gets in. Second.\n');
+    writeTrailers(root, messageFile, { gate: 'gets in. New.', refusedBefore: null });
+    expect(readFileSync(messageFile, 'utf8')).toBe('two\n\nGate: gets in. New.\n');
+  });
+
+  it("reads HEAD's record back, and finds none on a commit that carries none", () => {
+    const root = repoWithStagedChange();
+    const git = gitIn(root);
+    expect(headRecord(root)).toEqual({ gate: null, refusedBefore: null });
+    const messageFile = join(root, 'MSG');
+    writeFileSync(messageFile, 'two\n');
+    writeTrailers(root, messageFile, { gate: 'gets in. One.', refusedBefore: '1 refusal on the way to this shape. Last: Earlier.' });
+    git('commit', '-q', '-F', messageFile);
+    expect(headRecord(root)).toEqual({ gate: 'gets in. One.', refusedBefore: '1 refusal on the way to this shape. Last: Earlier.' });
   });
 
   it('replaces the record a message already carries, removing the token it no longer has', () => {
@@ -111,7 +146,7 @@ describe('the record a commit carries', () => {
     const root = repoWithStagedChange();
     const git = gitIn(root);
     const base = git('rev-parse', 'HEAD').trim();
-    remember(root, readDelta(root, { kind: 'staged' }), verdict(true, 'One reading.'));
+    remember(root, readDelta(root, { kind: 'staged' }), verdict(true, 'One reading.'), principles(root));
     const messageFile = join(root, 'MSG');
     writeFileSync(messageFile, 'fix(a): two\n');
     writeTrailers(root, messageFile, gateRecord(verdict(true, 'One reading.'), []));

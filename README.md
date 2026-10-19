@@ -232,7 +232,7 @@ hickey staged --full               # the judge's full answer to each question
 
 `git commit --no-verify` is the committer's explicit acceptance of a refusal, and the commit says so. Nothing else bypasses the gate.
 
-The judge reads the change in the tree it would be committed to. For `staged` and `amend` that is the index, written out on its own, so an unstaged edit beside the commit is never what the judge sees; for `range` it is the head commit's tree; for `uncommitted` it is the working tree itself.
+The judge reads the change in the tree it would be committed to. For `staged` and `amend` that is the index, written out on its own with `git archive`, so an unstaged edit beside the commit is never what the judge sees; for `range` it is the head commit's tree; for `uncommitted` it is the working tree itself. A tracked file marked `export-ignore` in `.gitattributes` is left out of what the judge reads, by git's own rule for an archive. A verdict is keyed by the diff, the tree it was judged in and the principles it was judged by, so the same patch staged in a different tree, or under changed principles, is judged again.
 
 `pre-commit` asks the commit's question: a verdict the record holds for what is being committed, and that no commit has carried yet, stands in place of judging again; otherwise the staged change is judged there. The hooks never guess what a commit is, because git reports `git commit --amend` and `git commit -C HEAD` to them identically. What each form carries:
 
@@ -243,11 +243,12 @@ The judge reads the change in the tree it would be committed to. For `staged` an
 | `hickey amend`, then `git commit --amend` | takes that verdict | the verdict of the commit as amended |
 | `git commit --amend` without `hickey amend` | judges the increment alone | `not judged: amended or reused` |
 | `git commit --amend --no-edit` with nothing staged | nothing to judge | its record as it was, refusals included |
+| `git commit --amend -m` with nothing staged | nothing to judge | its verdict written into the new message, with the refusals the old message carried |
 | `git commit --amend -m` or `-F` | judges the increment alone | the increment's record: git shows the hook a fresh message, so run `hickey amend` first and amend with the editor or `--no-edit` |
 | `git commit -C other` | judges the staged change | `not judged: amended or reused`: git shows the hook a reused message |
 | `git commit --no-verify` | skipped | `refused; accepted by the committer`, or not judged |
 | a merge | does not run | nothing; `carried` leaves merges out |
-| a squash, `git merge --squash` then `git commit` | judges the staged change | nothing: the hook leaves a squash message alone, and `carried` reports the commit as missing a record |
+| a squash, `git merge --squash` then `git commit` | judges the staged change | its verdict, like any commit |
 
 `carried` checks that every commit carries a record. A record is a verdict, a refusal the committer accepted, or an explicit not judged; what it proves is that the gate's outcome was written down, and a reviewer reads which.
 

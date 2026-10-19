@@ -49,7 +49,8 @@ const EMPTY_TREE = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
 export const treeOf = (root: string, revision: string): string => git(root, ['rev-parse', `${revision}^{tree}`]).trim();
 
 /** Writes `tree` out as files in a fresh directory of its own, for the judge to read as the repository, and says
- *  where. What git exports is the tree and nothing beside it: no untracked, ignored or `export-ignore` files. The
+ *  where. What git exports is the tree and nothing beside it: no untracked or ignored files, and no tracked file
+ *  marked `export-ignore` in the attributes, which git leaves out of an archive by its own rule. The
  *  archive git writes is unpacked by tar, the one step here that is not git's, and named as such when it fails. */
 export function exportTree(root: string, tree: string): string {
   const dir = mkdtempSync(join(tmpdir(), 'hickey-tree-'));

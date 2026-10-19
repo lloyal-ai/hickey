@@ -54,7 +54,7 @@ const thousands = (n: number): string => (n < 1000 ? String(n) : `${Math.round(n
 /** What the judgement took, in one line: the wall time hickey measured, then what the judge reported of its run. */
 export function spent(cost: Spent): string {
   const parts = [
-    ...(cost.turns === null ? [] : [`${cost.turns} turns`]),
+    ...(cost.turns === null ? [] : [cost.turns === 1 ? '1 turn' : `${cost.turns} turns`]),
     ...(cost.tokens === null ? [] : [`${thousands(cost.tokens.read)} tokens read, ${thousands(cost.tokens.written)} written`]),
   ];
   const seconds = Math.round(cost.durationMs / 1000);

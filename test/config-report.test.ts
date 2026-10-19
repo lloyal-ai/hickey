@@ -59,6 +59,6 @@ describe('the report', () => {
   it("says what a judgement took: the time, and the turns and tokens when the judge reported them", () => {
     expect(spent({ durationMs: 47_300, turns: null, tokens: null })).toBe("Judged in 47 s.");
     expect(spent({ durationMs: 58_600, turns: 12, tokens: { read: 61_480, written: 2_950 } })).toBe("Judged in 59 s: 12 turns, 61k tokens read, 3k written.");
-    expect(spent({ durationMs: 1_000, turns: 1, tokens: { read: 640, written: 4 } })).toBe("Judged in 1 s: 1 turns, 640 tokens read, 4 written.");
+    expect(spent({ durationMs: 1_000, turns: 1, tokens: { read: 640, written: 4 } })).toBe("Judged in 1 s: 1 turn, 640 tokens read, 4 written.");
   });
 });

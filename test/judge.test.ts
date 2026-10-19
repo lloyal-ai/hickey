@@ -30,14 +30,16 @@ describe('the judge', () => {
   it('returns the structured verdict the judge answered with', () => {
     const { verdict, spent } = withMode('verdict', () => judge('/tmp', delta, DEFAULT_CONFIG, opts));
     expect(spent.durationMs).toBeGreaterThan(0);
-    expect(spent.turns).toBeNull();
-    expect(spent.tokens).toBeNull();
+    expect(spent.turns).toBe(3);
+    expect(spent.tokens).toEqual({ read: 1740, written: 60 });
     expect(verdict.getsIn).toBe(true);
     expect(verdict.answers[0]?.question).toBe(1);
   });
 
   it('returns a refusal with its findings intact', () => {
-    const { verdict } = withMode('refused', () => judge('/tmp', delta, DEFAULT_CONFIG, opts));
+    const { verdict, spent } = withMode('refused', () => judge('/tmp', delta, DEFAULT_CONFIG, opts));
+    expect(spent.turns).toBeNull();
+    expect(spent.tokens).toBeNull();
     expect(verdict.getsIn).toBe(false);
     expect(verdict.answers[0]?.findings[0]).toMatchObject({ file: 'src/a.ts', line: 4, places: 2 });
   });

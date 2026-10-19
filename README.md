@@ -302,7 +302,7 @@ No. The shipped principles are the ideas of his talks Simple Made Easy and Simpl
 
 - **Any agent as the judge.** A configured command hickey runs with the principles and the change, reading the verdict from its output. Codex, Gemini, whatever is on your machine.
 - **A principles scaffold.** A starting document for a team to write their own tech lead's rulings into.
-- **Generated files out of the delta.** Lockfiles cost dollars and tell the judge nothing.
+- **Generated files out of the delta.** Lockfiles cost the judge thousands of tokens and tell it nothing.
 
 ## Developing
 

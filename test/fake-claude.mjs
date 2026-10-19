@@ -25,7 +25,8 @@ const verdict = {
 };
 
 const answers = {
-  verdict: () => ({ type: 'result', subtype: 'success', is_error: false, result: JSON.stringify(verdict), structured_output: verdict }),
+  verdict: () => ({ type: 'result', subtype: 'success', is_error: false, result: JSON.stringify(verdict), structured_output: verdict, num_turns: 3,
+    usage: { input_tokens: 40, cache_creation_input_tokens: 500, cache_read_input_tokens: 1200, output_tokens: 60 } }),
   refused: () => ({ type: 'result', subtype: 'success', is_error: false, structured_output: { ...verdict, getsIn: false, reason: 'A second reading of the record.',
     answers: [{ question: 3, answer: 'A sibling exists.', findings: [{ file: 'src/a.ts', line: 4, existing: 'src/b.ts readRecord', places: 2, statement: 'A second reader of the record beside the first.' }] }] } }),
   'no-structured': () => ({ type: 'result', subtype: 'success', is_error: false, result: 'I could not decide.' }),

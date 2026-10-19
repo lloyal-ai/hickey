@@ -14,8 +14,8 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@lloyal-labs/hickey"><img alt="npm" src="https://img.shields.io/npm/v/@lloyal-labs/hickey?label=npm"></a>
-  <a href="./LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>
+  <a href="https://www.npmjs.com/package/@lloyal-labs/hickey"><img alt="npm" src="https://img.shields.io/npm/v/@lloyal-labs/hickey?label=npm&color=green"></a>
+  <a href="./LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
   <img alt="node" src="https://img.shields.io/badge/node-%E2%89%A524-green">
 </p>
 

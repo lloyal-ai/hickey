@@ -30,7 +30,8 @@ describe('the judge', () => {
   it('returns the structured verdict the judge answered with', () => {
     const { verdict, spent } = withMode('verdict', () => judge('/tmp', delta, DEFAULT_CONFIG, opts));
     expect(spent.durationMs).toBeGreaterThan(0);
-    expect(spent.usd).toBeNull();
+    expect(spent.turns).toBeNull();
+    expect(spent.tokens).toBeNull();
     expect(verdict.getsIn).toBe(true);
     expect(verdict.answers[0]?.question).toBe(1);
   });

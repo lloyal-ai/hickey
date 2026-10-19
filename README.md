@@ -251,8 +251,8 @@ Put that in `hickey.config.json` and every commit is judged against your documen
 
 ## Cost
 
-- A judgement is about a minute and reads your repository. It runs on your coding agent's own account, so it costs what a minute of your agent costs: nothing extra on a subscription, API rates otherwise.
-- Every verdict ends with the time hickey measured and the cost the judge reported. The dollar figure is Claude Code's own accounting at API rates: what the session would have cost through the API. On a subscription plan nothing is billed per run, and the figure is notional.
+- A judgement is about a minute and reads your repository. It runs on your coding agent's own account, so it costs what a minute of your agent costs, out of the same plan.
+- Every verdict ends with what it took: the time, and the turns the judge spent reading and the tokens it read and wrote, as the judge reports them. No dollar figure: the judge runs on your account, and tokens are what your plan meters.
 - Committing often? Run `hickey uncommitted` while you work and let the commit's run be the confirmation.
 - Verdicts and the refusal journal live under your repository's git directory, never in the tree. Nothing is sent anywhere except to the agent you already use.
 
@@ -292,7 +292,7 @@ Today, yes. A `command` judge that hands the principles and the change to any ag
 
 #### Will it slow me down?
 
-A minute per commit, and a minute less per review. The time is printed on every verdict, with the judge's API-rate cost beside it, so measure it on your repository.
+A minute per commit, and a minute less per review. The time, turns and tokens are printed on every verdict, so measure it on your repository.
 
 #### Is this affiliated with Rich Hickey?
 

@@ -36,13 +36,28 @@ const Envelope = z.object({
   subtype: z.string().optional(),
   result: z.string().optional(),
   structured_output: z.unknown().optional(),
-  total_cost_usd: z.number().optional(),
+  num_turns: z.number().int().optional(),
+  usage: z.object({
+    input_tokens: z.number().optional(),
+    cache_creation_input_tokens: z.number().optional(),
+    cache_read_input_tokens: z.number().optional(),
+    output_tokens: z.number().optional(),
+  }).optional(),
 });
 
-/** What a judgement cost: the wall time the gate measured, and the dollars the judge reported when it did. */
+/** What a judgement took: the wall time the gate measured, and what the judge reported of its own run,
+ *  the turns it spent reading and the tokens it read and wrote. Null where the judge reported nothing. */
 export interface Spent {
   durationMs: number;
-  usd: number | null;
+  turns: number | null;
+  tokens: { read: number; written: number } | null;
+}
+
+/** The judge's usage as the gate reads it: everything the model read, from the prompt or the cache, and what it wrote. */
+function tokensOf(usage: z.output<typeof Envelope>['usage']): Spent['tokens'] {
+  if (usage === undefined) return null;
+  const read = (usage.input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0);
+  return { read, written: usage.output_tokens ?? 0 };
 }
 
 export interface Judged {
@@ -122,7 +137,7 @@ export function judge(root: string, delta: Delta, config: Config, opts: JudgeOpt
   if (envelope.data.is_error) throw new JudgeFailed(`${envelope.data.subtype ?? 'error'}: ${envelope.data.result ?? ''}`);
   const verdict = Verdict.safeParse(envelope.data.structured_output);
   if (!verdict.success) throw new JudgeFailed(`no structured verdict (${envelope.data.subtype ?? 'unknown'}): ${verdict.error.message}`);
-  return { verdict: verdict.data, spent: { durationMs, usd: envelope.data.total_cost_usd ?? null } };
+  return { verdict: verdict.data, spent: { durationMs, turns: envelope.data.num_turns ?? null, tokens: tokensOf(envelope.data.usage) } };
 }
 
 function parseJson(text: string): unknown {

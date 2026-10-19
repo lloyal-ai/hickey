@@ -174,7 +174,7 @@ Duplication is the easiest of the judge's eight questions to show. Most refusals
 | diff review | the change | the system it lands in |
 | type checker, linter | a rule against a line | where a concern belongs |
 | clone detector | copies | a function rewritten with a new name, and everything else on this list |
-| tests | the task | whether the next change is cheaper |
+| tests | the task | whether the design is coherent |
 
 **The braid grows faster than anyone can read it.** Six months later a one-line change touches a hundred places and you are pushing elephants around. An application that works but whose code is braided is not a lesser success. It is damage, and the cost lands on whoever has to change it next.
 
@@ -235,10 +235,10 @@ hickey staged --full               # the judge's full answer to each question
 
 Eight questions, in order, over the whole change.
 
-1. **What does it do?** In one sentence. If one sentence cannot hold it, that is the first finding.
-2. **What aspect does it address, and who else touches that aspect?** Is the change placed where those components meet, or where this task happened to be working?
-3. **Does something like this already exist?** A composition of it, an extension at its owning boundary, or a variation beside it? Only the first two are acceptable.
-4. **How many places does one rule now live in?** One is an abstraction. Several is the braid beginning.
+1. **What does it do?** In one sentence. If the change holds unrelated responsibilities, that is the first finding.
+2. **What aspect does it address, and who else touches that aspect?** Is each decision placed with its owner, or where this task happened to be working?
+3. **Does something like this already exist?** What do the two share? The same decision gets one owner and composition. Independent decisions that change for different reasons stay apart.
+4. **How many places does one rule now live in?** Places that decide the rule independently, counted apart from consumers adapting to its contract.
 5. **Does the file still read as its name?**
 6. **Would a developer reading this as the reference respect it?**
 7. **Is the structure declarative?** Data and tables, or control flow a reader must execute in their head?

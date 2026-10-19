@@ -5,6 +5,7 @@ import { readDelta } from '../src/delta.js';
 import { commitRecord } from '../src/index.js';
 import { DEFAULT_CONFIG, readPrinciples } from '../src/config.js';
 import { carriedByCommit, changeId, recall, remember, type Recorded } from '../src/record.js';
+import { GitFailed } from '../src/git.js';
 import { carried, gateRecord, headRecord, writeTrailers } from '../src/trailer.js';
 import type { Verdict } from '../src/verdict.js';
 import { gitIn, repoWithStagedChange } from './git.js';
@@ -121,6 +122,13 @@ describe('the record a commit carries', () => {
     writeFileSync(messageFile, 'two\n\nGate: gets in. First.\nGate: gets in. Second.\n');
     writeTrailers(root, messageFile, { gate: 'gets in. New.', refusedBefore: null });
     expect(readFileSync(messageFile, 'utf8')).toBe('two\n\nGate: gets in. New.\n');
+  });
+
+  it('refuses a message it cannot normalise in a bounded number of passes, rather than looping', () => {
+    const root = repoWithStagedChange();
+    const messageFile = join(root, 'MSG');
+    writeFileSync(messageFile, `two\n\n${'Gate: gets in. Again.\n'.repeat(40)}`);
+    expect(() => writeTrailers(root, messageFile, { gate: 'gets in. New.', refusedBefore: null })).toThrow(GitFailed);
   });
 
   it("reads HEAD's record back, and finds none on a commit that carries none", () => {

@@ -5,7 +5,7 @@
  * cleared only once the commit exists, from `post-commit`.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
-import { git, lines } from './git.js';
+import { git, GitFailed, lines } from './git.js';
 import type { CommitRecord, Recorded } from './record.js';
 import type { Verdict } from './verdict.js';
 
@@ -42,6 +42,8 @@ export function gateRecord(verdict: Verdict | null, refusals: Recorded[]): GateR
 /** The token the refusal count carried before `Refused-Before`; a message from then is normalised when rewritten. */
 const LEGACY_REFUSED_BEFORE = 'Gate-Refused-Before';
 const OURS = new Set([GATE, REFUSED_BEFORE, LEGACY_REFUSED_BEFORE]);
+/** Each pass removes one trailer; a message with more of ours than this is not one a hook should keep working on. */
+const REMOVAL_PASSES = 32;
 
 const FIELD = '\x1f';
 
@@ -58,7 +60,9 @@ function oursIn(root: string, messageFile: string): string[] {
  *  the message to do the removing, and leaves a blank line where the block was, which is folded into the one
  *  blank line a message ends with. */
 export function writeTrailers(root: string, messageFile: string, record: GateRecord): void {
+  let passes = 0;
   for (let ours = oursIn(root, messageFile); ours.length > 0; ours = oursIn(root, messageFile)) {
+    if (passes++ === REMOVAL_PASSES) throw new GitFailed(['interpret-trailers'], `${messageFile} still carries ${ours.length} of hickey's trailers after ${REMOVAL_PASSES} removals; a hook that cannot normalise a message stops rather than loops`);
     git(root, ['interpret-trailers', '--in-place', '--if-exists', 'replace', '--trim-empty', '--trailer', `${ours[ours.length - 1]}:`, messageFile]);
   }
   const refused = record.refusedBefore === null ? [] : ['--trailer', `${REFUSED_BEFORE}: ${record.refusedBefore}`];

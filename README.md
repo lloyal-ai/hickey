@@ -66,7 +66,7 @@ flowchart TD
     A[agent stages a change] --> B[git commit]
     B --> C["pre-commit: hickey staged<br/>the judge reads the principles, the diff,<br/>and any file in the repository it needs"]
     C --> D{verdict}
-    D -- refused, exit 1 --> E["findings: file, line, the existing thing,<br/>how many places the rule now lives in"]
+    D -- refused, exit 1 --> E["the shape: the one decision to make,<br/>then findings: file, line, the existing thing,<br/>how many places the rule now lives in"]
     E --> F[agent revises]
     F --> B
     D -- gets in, exit 0 --> G["prepare-commit-msg: hickey trailer<br/>Gate: gets in ...<br/>Gate-Refused-Before: N"]
@@ -244,7 +244,7 @@ Eight questions, in order, over the whole change.
 7. **Is the structure declarative?** Data and tables, or control flow a reader must execute in their head?
 8. **Did it meet the letter of a principle while defeating its intent?** A copy parameterised instead of composed. A rename in place of a redesign. A helper that hides a braid.
 
-Then the shape: the findings read together, as the symptoms of one missing abstraction, named with the component that owns it and what falls out of it. A refusal names the decision to make, not the places to patch.
+Then the shape. The judge reads its findings together and asks whether they are separate issues or symptoms of one missing abstraction. When they are one, it names the decision: what it is, which component owns it, and what falls out of it. As often composing what exists as adding. A refusal names the decision to make, not the places to patch.
 
 Then the verdict, as a comparison of the codebase with and without the change.
 

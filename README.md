@@ -4,8 +4,6 @@
 
 <h1 align="center">hickey</h1>
 
-<hr>
-
 <p align="center"><strong>Make your coding agent write maintainable code.</strong></p>
 
 <p align="center">

@@ -45,9 +45,9 @@ If less, the commit is refused with a precise instruction. Your agent revises an
 
 ## Contents
 
-1. [Example](#example)
-2. [Why this exists](#why-this-exists)
-3. [The loop](#the-loop)
+1. [The loop](#the-loop)
+2. [Example](#example)
+3. [Why this exists](#why-this-exists)
 4. [Quick start](#quick-start)
 5. [Commands](#commands)
 6. [What the judge asks](#what-the-judge-asks)
@@ -56,6 +56,32 @@ If less, the commit is refused with a precise instruction. Your agent revises an
 9. [Cost](#cost)
 10. [FAQ](#faq)
 11. [Roadmap](#roadmap)
+
+## The loop
+
+A commit gate is a loop, and the hook is what makes it one.
+
+```mermaid
+flowchart TD
+    A[agent stages a change] --> B[git commit]
+    B --> C["pre-commit: hickey staged<br/>the judge reads the principles, the diff,<br/>and any file in the repository it needs"]
+    C --> D{verdict}
+    D -- refused, exit 1 --> E["findings: file, line, the existing thing,<br/>how many places the rule now lives in"]
+    E --> F[agent revises]
+    F --> B
+    D -- gets in, exit 0 --> G["prepare-commit-msg: hickey trailer<br/>Gate: gets in ...<br/>Gate-Refused-Before: N"]
+    G --> H[the commit exists]
+    H --> I["pull request or release:<br/>hickey carried base...head<br/>reads the trailers, seconds, no judge"]
+```
+
+- The agent's goal is a commit.
+- A refusal exits non-zero. The commit does not happen. The goal stands unmet.
+- hickey is the loop's condition, the agent is its body, and "gets in" is the exit.
+- The only other exit is `git commit --no-verify`, recorded on the commit as the override it is.
+
+Each round costs about a minute. Each round the verdict compares the whole system again, so the agent is not patching the last finding. It is converging on a shape the whole makes sense with.
+
+The trailers are the record of the convergence. `Gate-Refused-Before: 3` means the shape took four rounds, and the last refusal's reason is right there for the reviewer.
 
 ## Example
 
@@ -132,32 +158,6 @@ Duplication is the easiest of the judge's eight questions to show. Most refusals
 **The braid grows faster than anyone can read it.** Six months later a one-line change touches a hundred places and you are pushing elephants around. An application that works but whose code is braided is not a lesser success. It is damage, and the cost lands on whoever has to change it next.
 
 **hickey asks what a tech lead who holds the whole system in their head would ask**, over the whole change, by reading the repository. Then it gives one verdict as a comparison, not a count of findings. A correct capability that leaves the whole no more sensible does not get in. A change that makes the whole make more sense gets in, even when it is longer, because the next change will be cheaper.
-
-## The loop
-
-A commit gate is a loop, and the hook is what makes it one.
-
-```mermaid
-flowchart TD
-    A[agent stages a change] --> B[git commit]
-    B --> C["pre-commit: hickey staged<br/>the judge reads the principles, the diff,<br/>and any file in the repository it needs"]
-    C --> D{verdict}
-    D -- refused, exit 1 --> E["findings: file, line, the existing thing,<br/>how many places the rule now lives in"]
-    E --> F[agent revises]
-    F --> B
-    D -- gets in, exit 0 --> G["prepare-commit-msg: hickey trailer<br/>Gate: gets in ...<br/>Gate-Refused-Before: N"]
-    G --> H[the commit exists]
-    H --> I["pull request or release:<br/>hickey carried base...head<br/>reads the trailers, seconds, no judge"]
-```
-
-- The agent's goal is a commit.
-- A refusal exits non-zero. The commit does not happen. The goal stands unmet.
-- hickey is the loop's condition, the agent is its body, and "gets in" is the exit.
-- The only other exit is `git commit --no-verify`, recorded on the commit as the override it is.
-
-Each round costs about a minute. Each round the verdict compares the whole system again, so the agent is not patching the last finding. It is converging on a shape the whole makes sense with.
-
-The trailers are the record of the convergence. `Gate-Refused-Before: 3` means the shape took four rounds, and the last refusal's reason is right there for the reviewer.
 
 ## Quick start
 

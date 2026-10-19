@@ -63,9 +63,10 @@ export interface Carried {
 
 const FIELD = '\x1f';
 
-/** Every commit in `range` with the record it carries, oldest first. */
+/** Every commit in `range` with the record it carries, oldest first. Merges are left out: `prepare-commit-msg`
+ *  never annotates one (see `LEFT_ALONE`), so a merge carries no record by design and is not a commit the gate missed. */
 export function carried(root: string, range: string): Carried[] {
-  const log = git(root, ['log', '--reverse', `--format=%h${FIELD}%s${FIELD}%(trailers:key=${GATE},valueonly,separator=%x20)`, range]);
+  const log = git(root, ['log', '--reverse', '--no-merges', `--format=%h${FIELD}%s${FIELD}%(trailers:key=${GATE},valueonly,separator=%x20)`, range]);
   return lines(log).map((line) => {
     const [commit = '', subject = '', record = ''] = line.split(FIELD);
     return { commit, subject, record: record.trim() === '' ? null : record.trim() };

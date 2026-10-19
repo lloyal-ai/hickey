@@ -77,6 +77,26 @@ describe('the trailers', () => {
     expect(recall(root).refusals).toEqual([]);
   });
 
+  it('leave merge commits out of the range they read, since a merge is never annotated', () => {
+    const root = repoWithStagedChange();
+    const git = gitIn(root);
+    const delta = readDelta(root, { kind: 'staged' });
+    remember(root, delta, verdict(true, 'One reading.'));
+    const messageFile = join(root, 'MSG');
+    writeFileSync(messageFile, 'fix(a): two\n');
+    writeTrailers(root, messageFile, trailersFor(root, delta));
+    git('commit', '-q', '-F', messageFile);
+    git('checkout', '-q', '-b', 'side', 'HEAD~1');
+    writeFileSync(join(root, 'b.ts'), 'export const b = 1;\n');
+    git('add', 'b.ts');
+    git('commit', '-q', '-m', 'side: b\n\nGate: gets in. Another reading.');
+    git('checkout', '-q', 'main');
+    git('merge', '-q', '--no-ff', '-m', 'merge side', 'side');
+    const commits = carried(root, 'HEAD~3...HEAD');
+    expect(commits.map((c) => c.subject)).toEqual(['fix(a): two', 'side: b']);
+    expect(commits.every((c) => c.record !== null)).toBe(true);
+  });
+
   it('are read back from a range of commits, so a pull request can be checked without a judge', () => {
     const root = repoWithStagedChange();
     const git = gitIn(root);

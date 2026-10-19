@@ -65,6 +65,9 @@ export function spent(cost: Spent): string {
   return parts.length === 0 ? `Judged in ${seconds} s.` : `Judged in ${seconds} s: ${parts.join(', ')}.`;
 }
 
+/** The line under a verdict the record already held for what is being committed. */
+export const recorded = (): string => 'Recorded for what is being committed, and no commit carries it yet; it stands.';
+
 /** The verdict as a job's step summary, with the evidence. */
 export function summary(verdict: Verdict): string {
   return `## Acceptance gate\n\n\`\`\`\n${render(verdict, { full: true })}\n\`\`\`\n`;

@@ -37,6 +37,14 @@ export const hooksDir = (root: string): string => resolve(root, git(root, ['rev-
 /** The tree the index holds now: the content a commit made this moment would carry. */
 export const indexTree = (root: string): string => git(root, ['write-tree']).trim();
 
+/** What HEAD was made from: its parent, or the tree of no files when HEAD is the first commit. */
+export function beforeHead(root: string): string {
+  return git(root, ['rev-parse', '--verify', '--quiet', 'HEAD~1'], [0, 1]).trim() || EMPTY_TREE;
+}
+
+/** The tree of no files, as git names it. */
+const EMPTY_TREE = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
+
 /** The tree a revision names. */
 export const treeOf = (root: string, revision: string): string => git(root, ['rev-parse', `${revision}^{tree}`]).trim();
 

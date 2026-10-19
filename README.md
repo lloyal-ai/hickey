@@ -64,12 +64,12 @@ A commit gate is a loop, and the hook is what makes it one.
 ```mermaid
 flowchart TD
     A[agent stages a change] --> B[git commit]
-    B --> C["pre-commit: hickey staged<br/>the judge reads the principles, the diff,<br/>and any file in the tree as it would be committed"]
+    B --> C["pre-commit: hickey committing<br/>the judge reads the principles, the diff,<br/>and any file in the tree as it would be committed"]
     C --> D{verdict}
     D -- refused, exit 1 --> E["the shape: the one decision to make,<br/>then findings: file, line, the existing thing,<br/>how many places the rule now lives in"]
     E --> F[agent revises]
     F --> B
-    D -- gets in, exit 0 --> G["prepare-commit-msg: hickey trailer<br/>Gate: gets in ...<br/>Gate-Refused-Before: N"]
+    D -- gets in, exit 0 --> G["prepare-commit-msg: hickey trailer<br/>Gate: gets in ...<br/>Refused-Before: N"]
     G --> H[the commit exists]
     H --> I["pull request or release:<br/>hickey carried base...head<br/>reads the trailers, seconds, no judge"]
 ```
@@ -81,7 +81,7 @@ flowchart TD
 
 Each round costs about a minute. Each round the verdict compares the whole system again, so the agent is not patching the last finding. It is converging on a shape the whole makes sense with.
 
-The trailers are the record of the convergence. `Gate-Refused-Before: 3` means the shape took four rounds, and the last refusal's reason is right there for the reviewer.
+The trailers are the record of the convergence. `Refused-Before: 3` means the shape took four rounds, and the last refusal's reason is right there for the reviewer.
 
 ## Example
 
@@ -148,7 +148,7 @@ $ git log -1 --format=%B
 add an order reader
 
 Gate: gets in. The whole makes more sense with this change: the rule for reading a line moves ...
-Gate-Refused-Before: 1 refusal on the way to this shape. Last: The whole makes less sense with this change because the rule for reading a delimited line now lives in two hand-written readers with no owner; ...
+Refused-Before: 1 refusal on the way to this shape. Last: The whole makes less sense with this change because the rule for reading a delimited line now lives in two hand-written readers with no owner; ...
 ```
 
 That transcript is real, trimmed for length. Two rounds: 39 seconds to the refusal, 50 to the commit that got in. Harder changes take more rounds, and the count rides on the commit.
@@ -198,7 +198,7 @@ output: [execution_out]
 pre-commit:
   commands:
     hickey:
-      run: npx hickey staged
+      run: npx hickey committing
 prepare-commit-msg:
   commands:
     hickey:
@@ -219,7 +219,8 @@ The judge needs [Claude Code](https://docs.claude.com/en/docs/claude-code) insta
 hickey staged                      # what is staged, as it would be committed
 hickey uncommitted                 # everything uncommitted, against the last commit
 hickey range origin/main...HEAD    # a branch, judged whole
-hickey carried origin/main...HEAD  # every commit carries a verdict: for a pull request or a release
+hickey amend                       # what git commit --amend would make, judged whole
+hickey carried origin/main...HEAD  # every commit carries a record: for a pull request or a release
 hickey staged --full               # the judge's full answer to each question
 ```
 
@@ -231,7 +232,11 @@ hickey staged --full               # the judge's full answer to each question
 
 `git commit --no-verify` is the committer's explicit acceptance of a refusal, and the commit says so. Nothing else bypasses the gate.
 
-The judge reads the change in the tree it would be committed to. For `staged` that is the index, written out on its own, so an unstaged edit beside the commit is never what the judge sees; for `range` it is the head commit's tree; for `uncommitted` it is the working tree itself.
+The judge reads the change in the tree it would be committed to. For `staged` and `amend` that is the index, written out on its own, so an unstaged edit beside the commit is never what the judge sees; for `range` it is the head commit's tree; for `uncommitted` it is the working tree itself.
+
+`pre-commit` asks the commit's question: a verdict the record holds for what is being committed, and that no commit has carried yet, stands in place of judging again, so judge with `hickey staged` while you work and the commit's hook takes that verdict; otherwise the staged change is judged there. An amend carries the verdict of the commit it makes, not of the increment, and that verdict is yours to ask for: run `hickey amend`, then `git commit --amend`. The hooks cannot tell an amend from a commit, since git reports `--amend` and `git commit -C HEAD` to them identically, so they never guess: `pre-commit` honours the verdict for the commit as amended, and the message hook writes it, replacing the record the message carried. An amend without `hickey amend` carries `not judged: amended or reused`. A message-only amend keeps its record, refusals included. `--amend -m` and `--amend -F` reach the hooks as a fresh message, so without `hickey amend` they carry the staged increment's record; amend with the editor or `--no-edit` instead.
+
+`carried` checks that every commit carries a record. A record is a verdict, a refusal the committer accepted, or an explicit not judged; what it proves is that the gate's outcome was written down, and a reviewer reads which.
 
 ## What the judge asks
 

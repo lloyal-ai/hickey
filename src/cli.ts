@@ -1,49 +1,58 @@
 #!/usr/bin/env node
 /**
- * `hickey staged` on every commit, `hickey uncommitted` while working, `hickey range <base>...<head>` to judge a
- * branch whole; `hickey trailer <message-file> [source]` from `prepare-commit-msg`, `hickey committed` from
- * `post-commit`; and `hickey carried <base>...<head>`, the check that every commit in a range carries the record,
+ * `hickey staged` while working, `hickey uncommitted` for everything since the last commit, `hickey range
+ * <base>...<head>` to judge a branch whole, `hickey amend` for what `git commit --amend` would make; `hickey
+ * committing` from `pre-commit`, `hickey trailer <message-file> [source]` from `prepare-commit-msg`, `hickey
+ * committed` from `post-commit`; and `hickey carried <base>...<head>`, the check that every commit in a range carries the record,
  * for a pull request or a release, with no judge. `--full` prints the judge's answer to each question above its findings.
  */
 import { appendFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
-import { gate } from './index.js';
+import { commitRecord, committing, gate, type Outcome } from './index.js';
 import { JudgeFailed } from './judge.js';
-import { isScopeKind, readDelta, SCOPES, type Scope } from './delta.js';
+import { isScopeKind, SCOPES, type Scope } from './delta.js';
 import { GitFailed, repositoryRoot } from './git.js';
 import { hooksWarning } from './hooks.js';
-import { forgetRefusals } from './record.js';
-import { EXIT, exitCode, render, spent, summary, type Rendering } from './report.js';
-import { annotates, carried, trailersFor, writeTrailers } from './trailer.js';
+import { carriedByCommit, recall } from './record.js';
+import { EXIT, exitCode, recorded, render, spent, summary, type Rendering } from './report.js';
+import { carried, messageRecord, writeTrailers } from './trailer.js';
 
 function usage(): number {
   process.stderr.write(`${USAGE}\n`);
   return EXIT.failed;
 }
 
-/** Judge a scope, print the verdict and what it cost, and say the exit code. */
-function judged(scope: Scope, rendering: Rendering): number {
-  const outcome = gate(process.cwd(), scope);
+/** Print an outcome and say its exit code. */
+function reported(outcome: Outcome, rendering: Rendering): number {
   if (outcome.kind === 'skipped') {
     process.stdout.write(`hickey: ${outcome.reason}\n`);
     return EXIT.getsIn;
   }
-  process.stdout.write(`${render(outcome.verdict, rendering)}\n${spent(outcome.spent)}\n`);
+  const took = outcome.kind === 'judged' ? spent(outcome.spent) : recorded();
+  process.stdout.write(`${render(outcome.verdict, rendering)}\n${took}\n`);
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary(outcome.verdict));
   return exitCode(outcome.verdict);
 }
 
+/** Judge a scope, print the verdict and what it cost, and say the exit code. */
+const judged = (scope: Scope, rendering: Rendering): number => reported(gate(process.cwd(), scope), rendering);
+
+/** From `pre-commit`: the commit's question. */
+const precommit = (): number => reported(committing(process.cwd()), { full: false });
+
+/** From `prepare-commit-msg` with git's own arguments, the message file and its source: the record, transcribed
+ *  into the message for the commit it describes. */
 function trailer(rest: readonly string[]): number {
   const [messageFile, source] = rest;
   if (!messageFile) return usage();
-  if (!annotates(source)) return EXIT.getsIn;
   const root = repositoryRoot(process.cwd());
-  writeTrailers(root, messageFile, trailersFor(root, readDelta(root, { kind: 'staged' })));
+  const record = messageRecord(commitRecord(root), recall(root).refusals, source);
+  if (record.kind === 'written') writeTrailers(root, messageFile, record.record);
   return EXIT.getsIn;
 }
 
 function committed(): number {
-  forgetRefusals(repositoryRoot(process.cwd()));
+  carriedByCommit(repositoryRoot(process.cwd()));
   return EXIT.getsIn;
 }
 
@@ -60,6 +69,7 @@ function carries(rest: readonly string[]): number {
 
 /** The commands that are not a scope to judge, each with its usage line; a scope's comes from `SCOPES`. */
 const COMMANDS: Record<string, { usage: string; run: (rest: readonly string[]) => number }> = {
+  committing: { usage: 'hickey committing                       from pre-commit: what is being committed, judged or taken from the record', run: precommit },
   trailer: { usage: 'hickey trailer <message-file> [source]  from prepare-commit-msg: write the record into the message', run: trailer },
   committed: { usage: 'hickey committed                        from post-commit: the record has been carried', run: committed },
   carried: { usage: 'hickey carried <base>...<head>          every commit in a range carries the record: a pull request, a release', run: carries },

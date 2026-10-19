@@ -3,12 +3,14 @@
  * are one table, `SCOPES`: how the command line spells each, what the judge is told it is reading, whether its
  * verdict is the one a commit carries, and how it is read from git.
  */
-import { git, indexTree, lines, treeOf } from './git.js';
+import { beforeHead, git, indexTree, lines, treeOf } from './git.js';
 
 export type Scope =
   | { kind: 'staged' }
   | { kind: 'uncommitted' }
-  | { kind: 'range'; spec: string };
+  | { kind: 'range'; spec: string }
+  /** The staged changes together with the commit they amend: what `git commit --amend` would make. */
+  | { kind: 'amend' };
 
 type Of<K extends Scope['kind']> = Extract<Scope, { kind: K }>;
 
@@ -19,8 +21,7 @@ export interface Delta {
   /** The files the change touches, relative to the repository root. */
   files: string[];
   /** The tree the judge reads as the repository: the content as it would be committed, or null for the
-   *  working tree on disk. The diff says what changes; the tree is what it changes in. The config and the
-   *  principles are read from the checkout, not the tree: they bound the judge, they are not the change. */
+   *  working tree on disk. The diff says what changes; the tree is what it changes in. */
   tree: string | null;
 }
 
@@ -92,6 +93,13 @@ export const SCOPES: { [K in Scope['kind']]: ScopeEntry<K> } = {
       const head = rangeHead(scope.spec);
       return diffed(root, scope, [scope.spec], head === null ? null : treeOf(root, head));
     },
+  },
+  amend: {
+    usage: 'hickey amend                 judge the staged changes together with the commit they amend',
+    sentence: 'the staged changes together with the commit they amend, as the amended commit would be',
+    remembered: true,
+    parse: () => ({ kind: 'amend' }),
+    read: (root, scope) => diffed(root, scope, ['--cached', beforeHead(root)], indexTree(root)),
   },
 };
 

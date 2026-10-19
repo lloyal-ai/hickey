@@ -45,6 +45,28 @@ describe('the delta', () => {
     expect(delta.diff).toContain('+export const c = 1;');
   });
 
+  it('reads an amend: the staged change together with the commit it amends, against the parent', () => {
+    const root = repo();
+    const git = gitIn(root);
+    writeFileSync(join(root, 'a.ts'), 'export const a = 2;\n');
+    git('add', 'a.ts');
+    git('commit', '-q', '-m', 'two');
+    writeFileSync(join(root, 'b.ts'), 'export const b = 1;\n');
+    git('add', 'b.ts');
+    const delta = readDelta(root, { kind: 'amend' });
+    expect(delta.files).toEqual(['a.ts', 'b.ts']);
+    expect(delta.diff).toContain('+export const a = 2;');
+    expect(delta.diff).toContain('+export const b = 1;');
+    expect(delta.tree).toBe(git('write-tree').trim());
+  });
+
+  it('reads an amend of the first commit against nothing', () => {
+    const root = repo();
+    writeFileSync(join(root, 'b.ts'), 'export const b = 1;\n');
+    gitIn(root)('add', 'b.ts');
+    expect(readDelta(root, { kind: 'amend' }).files).toEqual(['a.ts', 'b.ts']);
+  });
+
   it('says which tree the judge reads: the content as it would be committed, or the working tree', () => {
     const root = repo();
     const git = gitIn(root);
@@ -72,13 +94,12 @@ describe('the delta', () => {
   });
 
   it('names every scope in one table: its word, its sentence, whether a commit carries it, how it is parsed and read', () => {
-    expect(Object.keys(SCOPES)).toEqual(['staged', 'uncommitted', 'range']);
+    expect(Object.keys(SCOPES)).toEqual(['staged', 'uncommitted', 'range', 'amend']);
     expect(isScopeKind('range')).toBe(true);
     expect(isScopeKind('worktree')).toBe(false);
     expect(SCOPES.range.parse([])).toBeNull();
     expect(SCOPES.range.parse(['a...b'])).toEqual({ kind: 'range', spec: 'a...b' });
-    expect(Object.values(SCOPES).filter((entry) => entry.remembered).length).toBe(1);
-    expect(SCOPES.staged.remembered).toBe(true);
+    expect(Object.values(SCOPES).filter((entry) => entry.remembered).map((entry) => entry.sentence)).toEqual([SCOPES.staged.sentence, SCOPES.amend.sentence]);
     for (const entry of Object.values(SCOPES)) expect(entry.usage).toMatch(/^hickey \w+/);
   });
 

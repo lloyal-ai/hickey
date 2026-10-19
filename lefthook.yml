@@ -10,7 +10,7 @@ pre-commit:
       run: npm run check
     hickey:
       priority: 2
-      run: npx tsx src/cli.ts staged
+      run: npx tsx src/cli.ts committing
 prepare-commit-msg:
   commands:
     hickey:

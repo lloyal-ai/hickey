@@ -16,6 +16,9 @@ export const Recorded = z.object({
   change: z.string(),
   at: z.string(),
   verdict: Verdict,
+  /** Whether a commit has been made that carries this verdict, set from `post-commit`. A verdict carried by HEAD
+   *  is HEAD's own record; one not yet carried is waiting for the commit it describes. */
+  carried: z.boolean().default(false),
 });
 export type Recorded = z.output<typeof Recorded>;
 
@@ -25,6 +28,9 @@ const REFUSALS = 'refusals.jsonl';
 /** The change as the record keys it. */
 export const changeId = (delta: Delta): string => createHash('sha256').update(delta.diff).digest('hex');
 
+/** Whether a recorded verdict is about `delta`. */
+export const covers = (recorded: Recorded | null, delta: Delta): recorded is Recorded => recorded !== null && recorded.change === changeId(delta);
+
 /** The gate's own directory inside git's. */
 function recordDir(root: string): string {
   const dir = join(gitDir(root), 'hickey');
@@ -33,7 +39,7 @@ function recordDir(root: string): string {
 }
 
 export function remember(root: string, delta: Delta, verdict: Verdict): Recorded {
-  const recorded: Recorded = { change: changeId(delta), at: new Date().toISOString(), verdict };
+  const recorded: Recorded = { change: changeId(delta), at: new Date().toISOString(), verdict, carried: false };
   const dir = recordDir(root);
   writeFileSync(join(dir, LAST), JSON.stringify(recorded));
   if (!verdict.getsIn) appendFileSync(join(dir, REFUSALS), `${JSON.stringify(recorded)}\n`);
@@ -66,9 +72,13 @@ export function recall(root: string): Recalled {
   return { last: last.success ? last.data : null, refusals };
 }
 
-/** A commit has been made and carries the refusals; the journal starts again. */
-export function forgetRefusals(root: string): void {
-  writeFileSync(join(recordDir(root), REFUSALS), '');
+/** A commit has been made: it carries the last verdict and the refusals, so the verdict is marked carried and the
+ *  journal starts again. */
+export function carriedByCommit(root: string): void {
+  const dir = recordDir(root);
+  const { last } = recall(root);
+  if (last !== null) writeFileSync(join(dir, LAST), JSON.stringify({ ...last, carried: true }));
+  writeFileSync(join(dir, REFUSALS), '');
 }
 
 function parseOrNull(text: string): unknown {

@@ -13,6 +13,7 @@ const delta: Delta = {
   scope: { kind: 'staged' },
   files: ['src/a.ts', 'src/b.ts'],
   diff: 'diff --git a/src/a.ts b/src/a.ts\n+export const a = 1;\n',
+  tree: null,
 };
 const principles = join(mkdtempSync(join(tmpdir(), 'gate-')), 'PRINCIPLES.md');
 writeFileSync(principles, '# Principles\n');

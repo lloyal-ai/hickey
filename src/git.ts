@@ -1,7 +1,10 @@
 /**
- * The one way the gate asks git anything, with one meaning for failure. The index is only ever read.
+ * The one way the gate asks git anything, with one meaning for failure. The index is only ever read, and a
+ * tree is only ever written out to a directory of its own for the judge to read.
  */
-import { resolve } from 'node:path';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { run } from './child.js';
 
 export class GitFailed extends Error {
@@ -30,3 +33,28 @@ export const gitDir = (root: string): string => git(root, ['rev-parse', '--absol
 
 /** Where git looks for this checkout's hooks, honouring `core.hooksPath`, as an absolute path. */
 export const hooksDir = (root: string): string => resolve(root, git(root, ['rev-parse', '--git-path', 'hooks']).trim());
+
+/** The tree the index holds now: the content a commit made this moment would carry. */
+export const indexTree = (root: string): string => git(root, ['write-tree']).trim();
+
+/** The tree a revision names. */
+export const treeOf = (root: string, revision: string): string => git(root, ['rev-parse', `${revision}^{tree}`]).trim();
+
+/** Writes `tree` out as files in a fresh directory of its own, for the judge to read as the repository, and says
+ *  where. What git exports is the tree and nothing beside it: no untracked, ignored or `export-ignore` files. The
+ *  archive git writes is unpacked by tar, the one step here that is not git's, and named as such when it fails. */
+export function exportTree(root: string, tree: string): string {
+  const dir = mkdtempSync(join(tmpdir(), 'hickey-tree-'));
+  const archive = `${dir}.tar`;
+  try {
+    git(root, ['archive', '--format=tar', '-o', archive, tree]);
+    const ran = run('tar', ['-xf', archive, '-C', dir]);
+    if (ran.error || ran.status !== 0) throw new GitFailed(['archive', tree], `unpacking the archive with tar failed: ${ran.error?.message ?? ran.stderr}`);
+  } finally {
+    rmSync(archive, { force: true });
+  }
+  return dir;
+}
+
+/** Removes a directory `exportTree` made. */
+export const removeTree = (dir: string): void => rmSync(dir, { recursive: true, force: true });

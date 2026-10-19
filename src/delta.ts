@@ -3,7 +3,7 @@
  * are one table, `SCOPES`: how the command line spells each, what the judge is told it is reading, whether its
  * verdict is the one a commit carries, and how it is read from git.
  */
-import { git, lines } from './git.js';
+import { git, indexTree, lines, treeOf } from './git.js';
 
 export type Scope =
   | { kind: 'staged' }
@@ -18,6 +18,9 @@ export interface Delta {
   diff: string;
   /** The files the change touches, relative to the repository root. */
   files: string[];
+  /** The tree the judge reads as the repository: the content as it would be committed, or null for the
+   *  working tree on disk. The diff says what changes; the tree is what it changes in. */
+  tree: string | null;
 }
 
 export const isEmpty = (delta: Delta): boolean => delta.files.length === 0;
@@ -25,10 +28,16 @@ export const isEmpty = (delta: Delta): boolean => delta.files.length === 0;
 /** `git diff --no-index` exits 1 when the two sides differ, which is the answer, not a failure. */
 const DIFFERENCES_FOUND = 1;
 
-/** One `git diff` and the files it names. */
-function diffed(root: string, scope: Scope, args: readonly string[]): Delta {
-  return { scope, diff: git(root, ['diff', ...args]), files: lines(git(root, ['diff', ...args, '--name-only'])) };
+/** One `git diff` and the files it names, in `tree`. */
+function diffed(root: string, scope: Scope, args: readonly string[], tree: string | null): Delta {
+  return { scope, diff: git(root, ['diff', ...args]), files: lines(git(root, ['diff', ...args, '--name-only'])), tree };
 }
+
+/** The head of a range spec, `base..head` or `base...head`; a bare revision is a diff against the working tree. */
+const rangeHead = (spec: string): string | null => {
+  const head = spec.split(/\.{2,3}/)[1];
+  return head === undefined || head === '' ? null : head;
+};
 
 /** An untracked file as the diff that adds it, read against nothing so the index stays as it is. */
 function added(root: string, file: string): string {
@@ -53,7 +62,7 @@ export const SCOPES: { [K in Scope['kind']]: ScopeEntry<K> } = {
     sentence: 'the staged changes, as they would be committed',
     remembered: true,
     parse: () => ({ kind: 'staged' }),
-    read: (root, scope) => diffed(root, scope, ['--cached']),
+    read: (root, scope) => diffed(root, scope, ['--cached'], indexTree(root)),
   },
   uncommitted: {
     usage: 'hickey uncommitted           judge every uncommitted change against the last commit',
@@ -61,12 +70,13 @@ export const SCOPES: { [K in Scope['kind']]: ScopeEntry<K> } = {
     remembered: false,
     parse: () => ({ kind: 'uncommitted' }),
     read: (root, scope) => {
-      const tracked = diffed(root, scope, ['HEAD']);
+      const tracked = diffed(root, scope, ['HEAD'], null);
       const untracked = lines(git(root, ['ls-files', '--others', '--exclude-standard']));
       return {
         scope,
         diff: [tracked.diff, ...untracked.map((file) => added(root, file))].join(''),
         files: [...tracked.files, ...untracked],
+        tree: null,
       };
     },
   },
@@ -75,7 +85,10 @@ export const SCOPES: { [K in Scope['kind']]: ScopeEntry<K> } = {
     sentence: 'the range between two commits',
     remembered: false,
     parse: (rest) => (rest[0] ? { kind: 'range', spec: rest[0] } : null),
-    read: (root, scope) => diffed(root, scope, [scope.spec]),
+    read: (root, scope) => {
+      const head = rangeHead(scope.spec);
+      return diffed(root, scope, [scope.spec], head === null ? null : treeOf(root, head));
+    },
   },
 };
 

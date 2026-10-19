@@ -5,8 +5,8 @@
  */
 import { principlesPath, readConfig, type Config } from './config.js';
 import { isEmpty, readDelta, SCOPES, type Delta, type Scope } from './delta.js';
-import { repositoryRoot } from './git.js';
-import { CLAUDE, judge, judgeAvailability, JudgeFailed, type Spent } from './judge.js';
+import { exportTree, removeTree, repositoryRoot } from './git.js';
+import { CLAUDE, judge, judgeAvailability, JudgeFailed, type Judged, type Spent } from './judge.js';
 import { remember } from './record.js';
 import type { Verdict } from './verdict.js';
 
@@ -33,7 +33,20 @@ export function gate(cwd: string, scope: Scope, claude = CLAUDE): Outcome {
     if (config.judging === 'when-available') return { kind: 'skipped', reason: `${availability.reason}, so the change was not judged` };
     throw new JudgeFailed(`${availability.reason}, and this repository requires the judge`);
   }
-  const { verdict, spent } = judge(root, delta, config, { principlesPath: principlesPath(root, config), claude });
+  const { verdict, spent } = judgeInTree(root, delta, config, claude);
   if (SCOPES[scope.kind].remembered) remember(root, delta, verdict);
   return { kind: 'judged', delta, verdict, spent };
+}
+
+/** The judge reads the tree the delta names, written out on its own, so what it reads beside the diff is what
+ *  the commit would hold and never the working tree's unstaged edits; the working tree itself when the delta is it. */
+function judgeInTree(root: string, delta: Delta, config: Config, claude: string): Judged {
+  const opts = { principlesPath: principlesPath(root, config), claude };
+  if (delta.tree === null) return judge(root, delta, config, opts);
+  const tree = exportTree(root, delta.tree);
+  try {
+    return judge(tree, delta, config, opts);
+  } finally {
+    removeTree(tree);
+  }
 }

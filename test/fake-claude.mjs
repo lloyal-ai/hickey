@@ -13,7 +13,9 @@ if (process.argv.includes('--version')) {
 
 const input = readFileSync(0, 'utf8');
 if (process.env.FAKE_CLAUDE_RECORD) {
-  writeFileSync(process.env.FAKE_CLAUDE_RECORD, JSON.stringify({ argv: process.argv.slice(2), input }));
+  // What a judge sees: its arguments, its prompt, the directory it reads, and one file from it when asked.
+  const read = process.env.FAKE_CLAUDE_READ ? readFileSync(process.env.FAKE_CLAUDE_READ, 'utf8') : null;
+  writeFileSync(process.env.FAKE_CLAUDE_RECORD, JSON.stringify({ argv: process.argv.slice(2), input, cwd: process.cwd(), read }));
 }
 
 const verdict = {

@@ -64,7 +64,7 @@ A commit gate is a loop, and the hook is what makes it one.
 ```mermaid
 flowchart TD
     A[agent stages a change] --> B[git commit]
-    B --> C["pre-commit: hickey staged<br/>the judge reads the principles, the diff,<br/>and any file in the repository it needs"]
+    B --> C["pre-commit: hickey staged<br/>the judge reads the principles, the diff,<br/>and any file in the tree as it would be committed"]
     C --> D{verdict}
     D -- refused, exit 1 --> E["the shape: the one decision to make,<br/>then findings: file, line, the existing thing,<br/>how many places the rule now lives in"]
     E --> F[agent revises]
@@ -230,6 +230,8 @@ hickey staged --full               # the judge's full answer to each question
 | `2` | no verdict could be reached, or usage |
 
 `git commit --no-verify` is the committer's explicit acceptance of a refusal, and the commit says so. Nothing else bypasses the gate.
+
+The judge reads the change in the tree it would be committed to. For `staged` that is the index, written out on its own, so an unstaged edit beside the commit is never what the judge sees; for `range` it is the head commit's tree; for `uncommitted` it is the working tree itself.
 
 ## What the judge asks
 

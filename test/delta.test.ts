@@ -44,6 +44,16 @@ describe('the delta', () => {
     expect(delta.diff).toContain('+export const c = 1;');
   });
 
+  it('says which tree the judge reads: the content as it would be committed, or the working tree', () => {
+    const root = repo();
+    const git = gitIn(root);
+    writeFileSync(join(root, 'a.ts'), 'export const a = 2;\n');
+    git('add', 'a.ts');
+    expect(readDelta(root, { kind: 'staged' }).tree).toBe(git('write-tree').trim());
+    expect(readDelta(root, { kind: 'uncommitted' }).tree).toBeNull();
+    expect(readDelta(root, { kind: 'range', spec: 'HEAD~0...HEAD' }).tree).toBe(git('rev-parse', 'HEAD^{tree}').trim());
+  });
+
   it('names every scope in one table: its word, its sentence, whether a commit carries it, how it is parsed and read', () => {
     expect(Object.keys(SCOPES)).toEqual(['staged', 'uncommitted', 'range']);
     expect(isScopeKind('range')).toBe(true);

@@ -47,7 +47,7 @@ If less, the commit is refused with a precise instruction. Your agent revises an
 
 ## Contents
 
-1. [A refusal, and the commit that got in](#a-refusal-and-the-commit-that-got-in)
+1. [Example](#example)
 2. [Why this exists](#why-this-exists)
 3. [The loop](#the-loop)
 4. [Quick start](#quick-start)
@@ -59,7 +59,7 @@ If less, the commit is refused with a precise instruction. Your agent revises an
 10. [FAQ](#faq)
 11. [Roadmap](#roadmap)
 
-## A refusal, and the commit that got in
+## Example
 
 The setup: a small app with one entity, `User`, read from a line of CSV by hand in `src/users.ts`. You ask your agent to add `Order`. It writes `src/orders.ts` the same way: split the line, pick the fields. Clean code, good names, a reviewer would approve it. The agent commits.
 

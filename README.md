@@ -252,6 +252,8 @@ The judge reads the change in the tree it would be committed to. For `staged` an
 
 `carried` checks that every commit carries a record. A record is a verdict, a refusal the committer accepted, or an explicit not judged; what it proves is that the gate's outcome was written down, and a reviewer reads which.
 
+The check is per commit. A squash merge made by your host writes a commit on the base branch that carries no record, since the hooks never ran for it, so `carried` over that branch refuses it. Run the check on the pull request, where the commits are, or merge with a merge commit or a rebase merge so the records reach the base branch.
+
 ## What the judge asks
 
 Eight questions, in order, over the whole change.

@@ -1,6 +1,6 @@
 {
   "name": "@lloyal-labs/hickey",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "A commit gate that judges a change over its whole delta against your principles, with your own coding agent as the judge. The change gets in only when the whole with it makes more sense than it does today.",
   "type": "module",
   "bin": {

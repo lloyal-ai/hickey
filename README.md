@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/lloyal-ai/hickey/main/assets/hickey.png" alt="hickey" width="240">
+  <img src="assets/hickey.png" alt="hickey" width="240">
 </p>
 
 <h1 align="center">hickey</h1>

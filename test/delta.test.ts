@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { isEmpty, isScopeKind, readDelta, SCOPES } from '../src/delta.js';
-import { GitFailed, gitDir, repositoryRoot } from '../src/git.js';
+import { exportTree, GitFailed, gitDir, repositoryRoot } from '../src/git.js';
 import { gitIn, repo } from './git.js';
 
 describe('the delta', () => {
@@ -51,7 +52,23 @@ describe('the delta', () => {
     git('add', 'a.ts');
     expect(readDelta(root, { kind: 'staged' }).tree).toBe(git('write-tree').trim());
     expect(readDelta(root, { kind: 'uncommitted' }).tree).toBeNull();
-    expect(readDelta(root, { kind: 'range', spec: 'HEAD~0...HEAD' }).tree).toBe(git('rev-parse', 'HEAD^{tree}').trim());
+    const head = git('rev-parse', 'HEAD^{tree}').trim();
+    expect(readDelta(root, { kind: 'range', spec: 'HEAD~0...HEAD' }).tree).toBe(head);
+    expect(readDelta(root, { kind: 'range', spec: 'HEAD~0..' }).tree).toBe(head);
+    expect(readDelta(root, { kind: 'range', spec: 'HEAD~0' }).tree).toBeNull();
+  });
+
+  it('leaves nothing behind when a tree cannot be exported', () => {
+    const root = repo();
+    const scratch = mkdtempSync(join(tmpdir(), 'gate-scratch-'));
+    const before = process.env.TMPDIR;
+    process.env.TMPDIR = scratch;
+    try {
+      expect(() => exportTree(root, 'not-a-tree')).toThrow(GitFailed);
+    } finally {
+      if (before === undefined) delete process.env.TMPDIR; else process.env.TMPDIR = before;
+    }
+    expect(readdirSync(scratch)).toEqual([]);
   });
 
   it('names every scope in one table: its word, its sentence, whether a commit carries it, how it is parsed and read', () => {

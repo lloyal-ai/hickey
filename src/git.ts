@@ -50,10 +50,13 @@ export function exportTree(root: string, tree: string): string {
     git(root, ['archive', '--format=tar', '-o', archive, tree]);
     const ran = run('tar', ['-xf', archive, '-C', dir]);
     if (ran.error || ran.status !== 0) throw new GitFailed(['archive', tree], `unpacking the archive with tar failed: ${ran.error?.message ?? ran.stderr}`);
+    return dir;
+  } catch (err) {
+    removeTree(dir);
+    throw err;
   } finally {
     rmSync(archive, { force: true });
   }
-  return dir;
 }
 
 /** Removes a directory `exportTree` made. */

@@ -19,7 +19,8 @@ export interface Delta {
   /** The files the change touches, relative to the repository root. */
   files: string[];
   /** The tree the judge reads as the repository: the content as it would be committed, or null for the
-   *  working tree on disk. The diff says what changes; the tree is what it changes in. */
+   *  working tree on disk. The diff says what changes; the tree is what it changes in. The config and the
+   *  principles are read from the checkout, not the tree: they bound the judge, they are not the change. */
   tree: string | null;
 }
 
@@ -33,10 +34,12 @@ function diffed(root: string, scope: Scope, args: readonly string[], tree: strin
   return { scope, diff: git(root, ['diff', ...args]), files: lines(git(root, ['diff', ...args, '--name-only'])), tree };
 }
 
-/** The head of a range spec, `base..head` or `base...head`; a bare revision is a diff against the working tree. */
+/** The head of a range spec, `base..head` or `base...head`, as git reads it: an empty head is HEAD. A bare
+ *  revision is not a range; git diffs it against the working tree, so there is no head. */
 const rangeHead = (spec: string): string | null => {
   const head = spec.split(/\.{2,3}/)[1];
-  return head === undefined || head === '' ? null : head;
+  if (head === undefined) return null;
+  return head === '' ? 'HEAD' : head;
 };
 
 /** An untracked file as the diff that adds it, read against nothing so the index stays as it is. */

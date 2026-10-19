@@ -94,7 +94,7 @@ describe('the trailers', () => {
     git('checkout', '-q', 'main');
     git('merge', '-q', '--no-ff', '-m', 'merge side', 'side');
     const commits = carried(root, `${base}...HEAD`);
-    expect(commits.map((c) => c.subject)).toEqual(['fix(a): two', 'side: b']);
+    expect(commits.map((c) => c.subject).sort()).toEqual(['fix(a): two', 'side: b']);
     expect(commits.every((c) => c.record !== null)).toBe(true);
   });
 

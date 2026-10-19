@@ -178,7 +178,7 @@ Duplication is the easiest of the judge's eight questions to show. Most refusals
 
 **The braid grows faster than anyone can read it.** Six months later a one-line change touches a hundred places and you are pushing elephants around. An application that works but whose code is braided is not a lesser success. It is damage, and the cost lands on whoever has to change it next.
 
-**hickey asks what a tech lead who holds the whole system in their head would ask**, over the whole change, by reading the repository. Then it gives one verdict as a comparison, not a count of findings. A correct capability that leaves the whole no more sensible does not get in. A change that makes the whole make more sense gets in, even when it is longer, because the next change will be cheaper.
+**hickey asks what a tech lead who holds the whole system in their head would ask**, over the whole change, by reading the repository. Then it gives one verdict as a comparison, not a count of findings. A correct capability that leaves the whole no more sensible does not get in. A change that makes the whole make more sense gets in, even when it is longer, because the next change will cost what it should.
 
 ## Quick start
 

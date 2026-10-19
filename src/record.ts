@@ -27,7 +27,7 @@ export const changeId = (delta: Delta): string => createHash('sha256').update(de
 
 /** The gate's own directory inside git's. */
 function recordDir(root: string): string {
-  const dir = join(gitDir(root), 'gate');
+  const dir = join(gitDir(root), 'hickey');
   mkdirSync(dir, { recursive: true });
   return dir;
 }

@@ -36,7 +36,7 @@ describe('the trailers', () => {
     remember(root, delta, verdict(true, 'One reading.'));
     expect(trailersFor(root, delta)).toEqual([
       { token: 'Gate', value: 'gets in. One reading.' },
-      { token: 'Gate-Refused-Before', value: '1. A second reading.' },
+      { token: 'Gate-Refused-Before', value: '1 refusal on the way to this shape. Last: A second reading.' },
     ]);
   });
 
@@ -47,7 +47,7 @@ describe('the trailers', () => {
     remember(root, delta, verdict(false, 'A second reading.'));
     expect(trailersFor(root, delta)).toEqual([
       { token: 'Gate', value: 'refused; accepted by the committer. A second reading.' },
-      { token: 'Gate-Refused-Before', value: '1. A first refusal.' },
+      { token: 'Gate-Refused-Before', value: '1 refusal on the way to this shape. Last: A first refusal.' },
     ]);
   });
 
@@ -57,7 +57,7 @@ describe('the trailers', () => {
     remember(root, delta, verdict(true, 'One reading.'));
     writeFileSync(join(root, 'a.ts'), 'export const a = 3;\n');
     gitIn(root)('add', 'a.ts');
-    expect(trailersFor(root, readDelta(root, { kind: 'staged' }))).toEqual([{ token: 'Gate', value: 'not judged as committed' }]);
+    expect(trailersFor(root, readDelta(root, { kind: 'staged' }))).toEqual([{ token: 'Gate', value: 'not judged: no verdict exists for the change as committed' }]);
   });
 
   it('are written into the message by git, and the journal waits for the commit to exist', () => {
@@ -71,7 +71,7 @@ describe('the trailers', () => {
     const message = readFileSync(messageFile, 'utf8');
     expect(message.startsWith('fix(a): two\n\nThe body.\n')).toBe(true);
     expect(message).toContain('Gate: gets in. One reading.');
-    expect(message).toContain('Gate-Refused-Before: 1. A second reading.');
+    expect(message).toContain('Gate-Refused-Before: 1 refusal on the way to this shape. Last: A second reading.');
     expect(recall(root).refusals).toHaveLength(1);
     forgetRefusals(root);
     expect(recall(root).refusals).toEqual([]);

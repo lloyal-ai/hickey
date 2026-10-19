@@ -36,7 +36,19 @@ const Envelope = z.object({
   subtype: z.string().optional(),
   result: z.string().optional(),
   structured_output: z.unknown().optional(),
+  total_cost_usd: z.number().optional(),
 });
+
+/** What a judgement cost: the wall time the gate measured, and the dollars the judge reported when it did. */
+export interface Spent {
+  durationMs: number;
+  usd: number | null;
+}
+
+export interface Judged {
+  verdict: Verdict;
+  spent: Spent;
+}
 
 export interface JudgeOptions {
   /** The judge's document, as a path the CLI reads. */
@@ -83,7 +95,7 @@ export type Availability =
   | { kind: 'absent'; reason: string }
   | { kind: 'too-old'; version: string; reason: string };
 
-/** Whether a judge this file can drive is installed; what `eval: when-available` asks before judging. */
+/** Whether a judge this file can drive is installed; what `judging: when-available` asks before judging. */
 export function judgeAvailability(claude = CLAUDE): Availability {
   const ran = run(claude, ['--version']);
   const version = ran.error || ran.status !== 0 ? undefined : coerce(ran.stdout)?.version;
@@ -94,12 +106,14 @@ export function judgeAvailability(claude = CLAUDE): Availability {
   return { kind: 'available' };
 }
 
-export function judge(root: string, delta: Delta, config: Config, opts: JudgeOptions): Verdict {
+export function judge(root: string, delta: Delta, config: Config, opts: JudgeOptions): Judged {
   const input = framing(delta, config);
   if (Buffer.byteLength(input, 'utf8') > STDIN_LIMIT) {
     throw new JudgeFailed(`the change is ${Buffer.byteLength(input, 'utf8')} bytes, above the judge's ${STDIN_LIMIT}-byte limit; judge it in parts`);
   }
+  const started = performance.now();
   const ran = run(opts.claude ?? CLAUDE, judgeArguments(config, opts), { cwd: root, input });
+  const durationMs = performance.now() - started;
   if (ran.error) throw new JudgeFailed(ran.error.message);
   if (ran.status !== 0) throw new JudgeFailed(`exit ${ran.status}: ${ran.stderr.trim() || ran.stdout.trim()}`);
 
@@ -108,7 +122,7 @@ export function judge(root: string, delta: Delta, config: Config, opts: JudgeOpt
   if (envelope.data.is_error) throw new JudgeFailed(`${envelope.data.subtype ?? 'error'}: ${envelope.data.result ?? ''}`);
   const verdict = Verdict.safeParse(envelope.data.structured_output);
   if (!verdict.success) throw new JudgeFailed(`no structured verdict (${envelope.data.subtype ?? 'unknown'}): ${verdict.error.message}`);
-  return verdict.data;
+  return { verdict: verdict.data, spent: { durationMs, usd: envelope.data.total_cost_usd ?? null } };
 }
 
 function parseJson(text: string): unknown {

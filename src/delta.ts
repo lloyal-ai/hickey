@@ -49,14 +49,14 @@ interface ScopeEntry<K extends Scope['kind']> {
 
 export const SCOPES: { [K in Scope['kind']]: ScopeEntry<K> } = {
   staged: {
-    usage: 'gate staged                judge what is staged, as it would be committed',
+    usage: 'hickey staged                judge what is staged, as it would be committed',
     sentence: 'the staged changes, as they would be committed',
     remembered: true,
     parse: () => ({ kind: 'staged' }),
     read: (root, scope) => diffed(root, scope, ['--cached']),
   },
   uncommitted: {
-    usage: 'gate uncommitted           judge every uncommitted change against the last commit',
+    usage: 'hickey uncommitted           judge every uncommitted change against the last commit',
     sentence: 'the uncommitted changes against the last commit',
     remembered: false,
     parse: () => ({ kind: 'uncommitted' }),
@@ -71,7 +71,7 @@ export const SCOPES: { [K in Scope['kind']]: ScopeEntry<K> } = {
     },
   },
   range: {
-    usage: 'gate range <base>...<head> judge the commits between two points, whole',
+    usage: 'hickey range <base>...<head> judge the commits between two points, whole',
     sentence: 'the range between two commits',
     remembered: false,
     parse: (rest) => (rest[0] ? { kind: 'range', spec: rest[0] } : null),

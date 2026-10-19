@@ -1,0 +1,15 @@
+output: [execution_out]
+# hickey gates its own commits, run from source so a fresh clone has the hooks after `npm install`.
+# A consuming repository runs the published `hickey` bin instead.
+pre-commit:
+  commands:
+    hickey:
+      run: npx tsx src/cli.ts staged
+prepare-commit-msg:
+  commands:
+    hickey:
+      run: npx tsx src/cli.ts trailer {1} {2}
+post-commit:
+  commands:
+    hickey:
+      run: npx tsx src/cli.ts committed

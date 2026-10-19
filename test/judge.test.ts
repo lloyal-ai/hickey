@@ -28,13 +28,15 @@ const withMode = <T>(mode: string, run: () => T): T => {
 
 describe('the judge', () => {
   it('returns the structured verdict the judge answered with', () => {
-    const verdict = withMode('verdict', () => judge('/tmp', delta, DEFAULT_CONFIG, opts));
+    const { verdict, spent } = withMode('verdict', () => judge('/tmp', delta, DEFAULT_CONFIG, opts));
+    expect(spent.durationMs).toBeGreaterThan(0);
+    expect(spent.usd).toBeNull();
     expect(verdict.getsIn).toBe(true);
     expect(verdict.answers[0]?.question).toBe(1);
   });
 
   it('returns a refusal with its findings intact', () => {
-    const verdict = withMode('refused', () => judge('/tmp', delta, DEFAULT_CONFIG, opts));
+    const { verdict } = withMode('refused', () => judge('/tmp', delta, DEFAULT_CONFIG, opts));
     expect(verdict.getsIn).toBe(false);
     expect(verdict.answers[0]?.findings[0]).toMatchObject({ file: 'src/a.ts', line: 4, places: 2 });
   });

@@ -52,7 +52,7 @@ describe('the delta', () => {
     expect(SCOPES.range.parse(['a...b'])).toEqual({ kind: 'range', spec: 'a...b' });
     expect(Object.values(SCOPES).filter((entry) => entry.remembered).length).toBe(1);
     expect(SCOPES.staged.remembered).toBe(true);
-    for (const entry of Object.values(SCOPES)) expect(entry.usage).toMatch(/^gate \w+/);
+    for (const entry of Object.values(SCOPES)) expect(entry.usage).toMatch(/^hickey \w+/);
   });
 
   it('finds the repository root and git directory from inside, and fails loud on a range git cannot read', () => {

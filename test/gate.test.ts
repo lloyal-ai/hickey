@@ -36,7 +36,7 @@ describe('the gate as one operation', () => {
     const allowed = repoWithStagedChange();
     expect(gate(allowed, { kind: 'staged' }, '/nonexistent/claude')).toMatchObject({ kind: 'skipped' });
     const required = repoWithStagedChange();
-    writeFileSync(join(required, CONFIG_FILE), JSON.stringify({ kind: 'framework', eval: 'required' }));
+    writeFileSync(join(required, CONFIG_FILE), JSON.stringify({ kind: 'framework', judging: 'required' }));
     expect(() => gate(required, { kind: 'staged' }, '/nonexistent/claude')).toThrow(/requires the judge/);
   });
 });

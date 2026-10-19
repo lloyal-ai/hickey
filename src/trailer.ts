@@ -26,13 +26,15 @@ function standing(last: Recorded | null, delta: Delta): Standing {
   return last.verdict.getsIn ? 'in' : 'refused';
 }
 
-const refusedBefore = (refusals: Recorded[]): Trailer[] =>
-  refusals.length === 0
-    ? []
-    : [{ token: REFUSED_BEFORE, value: `${refusals.length}. ${refusals[refusals.length - 1]!.verdict.reason}` }];
+/** How many refusals the committed shape took to reach, and the last one's reason. */
+const refusedBefore = (refusals: Recorded[]): Trailer[] => {
+  if (refusals.length === 0) return [];
+  const count = refusals.length === 1 ? '1 refusal' : `${refusals.length} refusals`;
+  return [{ token: REFUSED_BEFORE, value: `${count} on the way to this shape. Last: ${refusals[refusals.length - 1]!.verdict.reason}` }];
+};
 
 const TRAILERS: Record<Standing, (last: Recorded | null, refusals: Recorded[]) => Trailer[]> = {
-  unjudged: (_last, refusals) => [{ token: GATE, value: 'not judged as committed' }, ...refusedBefore(refusals)],
+  unjudged: (_last, refusals) => [{ token: GATE, value: 'not judged: no verdict exists for the change as committed' }, ...refusedBefore(refusals)],
   in: (last, refusals) => [{ token: GATE, value: `gets in. ${last!.verdict.reason}` }, ...refusedBefore(refusals)],
   refused: (last, refusals) => {
     const beforeTheAccepted = refusals.slice(0, -1);

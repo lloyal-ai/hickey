@@ -1,6 +1,7 @@
 /**
  * The one way the gate asks git anything, with one meaning for failure. The index is only ever read.
  */
+import { resolve } from 'node:path';
 import { run } from './child.js';
 
 export class GitFailed extends Error {
@@ -26,3 +27,6 @@ export const repositoryRoot = (cwd: string): string => git(cwd, ['rev-parse', '-
 
 /** Where git keeps this checkout's own files, as an absolute path. */
 export const gitDir = (root: string): string => git(root, ['rev-parse', '--absolute-git-dir']).trim();
+
+/** Where git looks for this checkout's hooks, honouring `core.hooksPath`, as an absolute path. */
+export const hooksDir = (root: string): string => resolve(root, git(root, ['rev-parse', '--git-path', 'hooks']).trim());

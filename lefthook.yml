@@ -1,9 +1,15 @@
-output: [execution_out]
 # hickey gates its own commits, run from source so a fresh clone has the hooks after `npm install`.
-# A consuming repository runs the published `hickey` bin instead.
+# A consuming repository runs the published `hickey` bin instead. The deterministic check runs before the
+# judge and a red check stops the commit there: what can be measured is settled in seconds before a minute of judging.
+output: [execution_out]
 pre-commit:
+  piped: true
   commands:
+    check:
+      priority: 1
+      run: npm run check
     hickey:
+      priority: 2
       run: npx tsx src/cli.ts staged
 prepare-commit-msg:
   commands:

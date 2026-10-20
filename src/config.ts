@@ -31,7 +31,7 @@ export const CONFIG_FILE = 'hickey.config.json';
 export const DEFAULT_CONFIG: Config = {
   kind: 'harness',
   judging: 'when-available',
-  model: 'claude-fable-5-1',
+  model: 'claude-opus-5-5',
   maxTurns: 30,
 };
 

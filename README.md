@@ -294,7 +294,7 @@ Put that in `hickey.config.json` and every commit is judged against your documen
 | `principles` | path from the repository root | the shipped `PRINCIPLES.md` | the document the judge reads |
 | `judging` | `required`, `when-available` | `when-available` | `required`: no judge, no commit. `when-available`: a developer without the judge is not blocked, and hickey says the change was not judged |
 | `kind` | `framework`, `tooling`, `harness` | `harness` | the one word the judge is told about what it is reading |
-| `model` | a model id | the current Claude | the judge's model |
+| `model` | a model id | `claude-opus-5-5` | the judge's model, by full id; pinned so every commit is judged by the same model |
 | `maxTurns` | integer | `30` | how many turns the judge may spend reading before it must answer |
 
 ## Cost
